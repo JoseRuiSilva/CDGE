@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001088,94-CY-50,Fiat,500,Citadino,4,2019,Gasolina,52000,7300,2023-03-24,8600,2023-08-06,Braga
+V001089,72-MS-37,BMW,X1,SUV,5,2020,Gasolina,41000,19300,2023-03-14,21600,2023-05-25,Braga
+V001090,22-CC-11,Nissan,Leaf,Elétrico,5,2020,100% Elétrico,40000,13100,2023-03-10,15200,2023-06-26,Braga
+V001091,99-LV-83,Seat,Ibiza,Citadino,5,2019,GPL,59000,6100,2023-03-30,7000,2023-07-13,Braga
+V001092,34-ZF-60,Peugeot,3008,SUV,5,2021,Gasóleo,26000,17700,2023-03-04,,,Braga
+V001093,99-QD-73,Citroën,C3,Citadino,5,2016,Gasolina,91000,4400,2023-03-10,4700,2023-05-27,Braga
+V001094,61-NZ-40,Mercedes,Classe A,Hatchback,5,2019,Gasóleo,70000,12500,2023-03-28,13700,2023-06-26,Braga
+V001095,67-EE-19,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,70000,9700,2023-03-22,10500,2023-05-03,Braga
+V001096,36-PU-14,Volkswagen,Golf,Hatchback,5,2017,Gasóleo,84000,8500,2023-03-08,10000,2023-06-05,Braga
+V001097,60-ZW-51,Renault,Clio,Citadino,5,2021,Gasóleo,43000,9000,2023-03-02,10300,2023-07-10,Braga
+V001098,63-CP-52,Renault,Zoe,Elétrico,5,2019,100% Elétrico,70000,11200,2023-03-24,13200,2023-05-17,Braga
+V001099,11-UL-53,Nissan,Leaf,Elétrico,5,2017,100% Elétrico,90000,9400,2023-03-08,10000,2023-07-04,Braga

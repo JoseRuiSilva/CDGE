@@ -1,0 +1,15 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000186,52-RN-69,Mercedes,GLA,SUV,5,2020,Gasóleo,45000,20200,2023-02-01,22700,2023-03-29,Lisboa
+V000187,64-MA-37,Seat,Arona,SUV,5,2021,Gasolina,35000,11700,2023-02-06,13000,2023-04-09,Lisboa
+V000188,72-QU-50,Audi,A3,Sedan,5,2017,Híbrido a Gasolina,73000,10700,2023-02-03,12200,2023-04-23,Lisboa
+V000189,85-CV-27,Fiat,500,Citadino,4,2020,Híbrido a Gasolina,43000,9700,2023-02-12,11400,2023-05-11,Lisboa
+V000190,78-WU-32,Peugeot,3008,SUV,5,2020,Gasóleo,58000,13400,2023-02-12,15000,2023-04-12,Lisboa
+V000191,81-QU-73,Renault,Clio,Citadino,5,2018,Gasolina,88000,6200,2023-02-11,7200,2023-04-13,Lisboa
+V000192,68-SX-73,Renault,Clio,Citadino,5,2015,GPL,120000,4200,2023-02-15,4500,2023-05-11,Lisboa
+V000193,64-DX-93,BMW,X1,SUV,5,2017,Gasóleo,85000,12900,2023-02-25,14500,2023-06-29,Lisboa
+V000194,40-GZ-85,Nissan,Qashqai,SUV,5,2018,Híbrido a Gasolina,77000,11000,2023-02-15,,,Lisboa
+V000195,86-RF-51,Hyundai,Kona,SUV,5,2021,Híbrido a Gasolina,35000,19000,2023-02-14,21400,2023-05-26,Lisboa
+V000196,45-UE-99,Nissan,Qashqai,SUV,5,2016,Gasóleo,98000,8500,2023-02-28,9900,2023-06-25,Lisboa
+V000197,58-OC-91,Peugeot,3008,SUV,5,2020,Híbrido a Gasolina,56000,14800,2023-02-27,16800,2023-05-18,Lisboa
+V000198,21-XO-91,Audi,A3,Sedan,5,2019,Gasolina,71000,12000,2023-02-24,14000,2023-03-08,Lisboa
+V000199,53-RS-26,Seat,Arona,SUV,5,2018,Gasolina,82000,8300,2023-02-03,9600,2023-05-08,Lisboa

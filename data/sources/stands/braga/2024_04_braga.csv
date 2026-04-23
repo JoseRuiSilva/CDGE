@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001207,72-QI-59,Nissan,Qashqai,SUV,5,2019,Gasóleo,71000,11200,2024-04-26,13200,2024-05-14,Braga
+V001208,75-SC-24,Fiat,500,Citadino,4,2020,Gasolina,50000,7500,2024-04-11,8700,2024-05-23,Braga
+V001209,36-MJ-21,Peugeot,208,Citadino,5,2019,Gasolina,72000,7000,2024-04-07,8100,2024-05-11,Braga
+V001210,77-DH-64,Seat,Ibiza,Citadino,5,2020,Gasolina,60000,6700,2024-04-11,7500,2024-08-08,Braga
+V001211,21-BY-55,Seat,Arona,SUV,5,2019,Gasolina,72000,8400,2024-04-01,9200,2024-05-10,Braga
+V001212,71-AI-56,Renault,Clio,Citadino,5,2018,Gasóleo,80000,5600,2024-04-04,,,Braga
+V001213,64-NB-51,Renault,Zoe,Elétrico,5,2019,100% Elétrico,63000,9800,2024-04-17,11000,2024-07-22,Braga
+V001214,95-IR-90,Peugeot,208,Citadino,5,2020,Gasóleo,51000,9300,2024-04-25,10400,2024-08-01,Braga
+V001215,25-CZ-98,Peugeot,208,Citadino,5,2021,100% Elétrico,62000,10300,2024-04-26,12100,2024-07-24,Braga
+V001216,39-CH-26,Volkswagen,Golf,Hatchback,5,2021,Gasolina,40000,12800,2024-04-28,14500,2024-07-07,Braga
+V001217,76-GU-91,Renault,Zoe,Elétrico,5,2023,100% Elétrico,22000,16000,2024-04-27,17900,2024-08-04,Braga
+V001218,98-HN-67,Audi,A3,Sedan,5,2020,Híbrido a Gasolina,68000,13400,2024-04-10,14400,2024-08-25,Braga

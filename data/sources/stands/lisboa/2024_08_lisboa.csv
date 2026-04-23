@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000439,21-WU-85,Hyundai,Kona,SUV,5,2019,100% Elétrico,49000,15400,2024-08-04,16700,2024-08-17,Lisboa
+V000440,32-TW-14,Citroën,C3,Citadino,5,2018,Gasóleo,72000,5300,2024-08-25,5800,2024-12-20,Lisboa
+V000441,77-DT-56,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,23000,31100,2024-08-20,33700,2024-10-31,Lisboa
+V000442,30-VB-16,Kia,Niro,SUV,5,2022,100% Elétrico,25000,21900,2024-08-15,24500,2024-12-26,Lisboa
+V000443,78-FF-13,Volkswagen,Golf,Hatchback,5,2017,Gasóleo,114000,7200,2024-08-11,,,Lisboa
+V000444,24-KH-22,Volkswagen,Tiguan,SUV,5,2018,Híbrido a Gasolina,83000,11300,2024-08-24,12300,2024-11-27,Lisboa
+V000445,32-ML-27,Citroën,C3,Citadino,5,2019,Gasolina,68000,5900,2024-08-29,,,Lisboa
+V000446,68-NF-53,Nissan,Qashqai,SUV,5,2020,Gasóleo,64000,12300,2024-08-09,14300,2024-09-18,Lisboa
+V000447,37-SP-69,Volkswagen,Golf,Hatchback,5,2017,Gasolina,110000,7700,2024-08-26,,,Lisboa
+V000448,10-NB-15,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,43000,25900,2024-08-24,30300,2024-10-13,Lisboa
+V000449,40-CR-11,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,27000,32400,2024-08-17,36100,2024-09-23,Lisboa
+V000450,84-AO-69,Citroën,C3,Citadino,5,2015,Gasolina,101000,3900,2024-08-12,4500,2024-12-19,Lisboa
+V000451,98-KQ-14,Nissan,Leaf,Elétrico,5,2021,100% Elétrico,54000,12800,2024-08-13,14200,2024-09-12,Lisboa

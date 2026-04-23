@@ -1,0 +1,12 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000518,55-TV-86,Mercedes,Classe A,Hatchback,5,2016,Híbrido a Gasolina,75000,9900,2022-02-24,11100,2022-05-07,Porto
+V000519,81-BS-32,Renault,Zoe,Elétrico,5,2019,100% Elétrico,40000,14100,2022-02-01,16600,2022-03-18,Porto
+V000520,73-IX-56,Renault,Clio,Citadino,5,2019,GPL,57000,7000,2022-02-15,8200,2022-03-10,Porto
+V000521,29-RV-91,Peugeot,3008,SUV,5,2018,Híbrido a Gasolina,55000,13400,2022-02-20,,,Porto
+V000522,55-WR-72,Mercedes,GLA,SUV,5,2017,Gasolina,72000,13900,2022-02-08,14800,2022-06-26,Porto
+V000523,94-SG-84,BMW,X1,SUV,5,2020,Híbrido a Gasolina,33000,21400,2022-02-05,24100,2022-04-27,Porto
+V000524,13-JV-97,Mercedes,GLA,SUV,5,2018,Gasóleo,57000,17100,2022-02-06,,,Porto
+V000525,10-KB-93,Seat,Arona,SUV,5,2015,Gasolina,82000,6900,2022-02-04,7800,2022-04-25,Porto
+V000526,87-MC-61,Volkswagen,Golf,Hatchback,5,2013,Híbrido a Gasolina,140000,6600,2022-02-24,7400,2022-03-26,Porto
+V000527,72-ZN-49,Peugeot,3008,SUV,5,2015,Híbrido a Gasolina,83000,9900,2022-02-13,10600,2022-04-05,Porto
+V000528,64-ZL-88,Fiat,500,Citadino,4,2019,Gasolina,49000,8900,2022-02-04,9500,2022-06-04,Porto

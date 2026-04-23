@@ -1,0 +1,16 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000592,73-PI-84,Tesla,Model 3,Elétrico,5,2019,100% Elétrico,39000,25800,2022-08-12,29600,2022-12-25,Porto
+V000593,57-IR-20,Hyundai,Kona,SUV,5,2016,Gasolina,76000,10000,2022-08-02,11300,2022-11-18,Porto
+V000594,57-ZP-50,BMW,X1,SUV,5,2019,Gasolina,55000,17500,2022-08-12,19500,2022-12-21,Porto
+V000595,39-DD-19,Mercedes,GLA,SUV,5,2021,Híbrido a Gasolina,21000,27300,2022-08-09,31500,2022-09-10,Porto
+V000596,79-IA-48,BMW,Série 1,Hatchback,5,2018,Gasolina,77000,11300,2022-08-22,13300,2022-10-08,Porto
+V000597,39-HX-36,Renault,Clio,Citadino,5,2017,GPL,94000,5300,2022-08-31,6200,2022-10-20,Porto
+V000598,99-NG-66,Peugeot,208,Citadino,5,2018,100% Elétrico,57000,10300,2022-08-25,11400,2022-10-24,Porto
+V000599,63-NV-61,BMW,Série 1,Hatchback,5,2019,Gasolina,42000,13800,2022-08-19,15200,2022-11-29,Porto
+V000600,87-TS-60,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,25000,30400,2022-08-10,34300,2022-11-14,Porto
+V000601,23-VR-32,Nissan,Qashqai,SUV,5,2013,Gasóleo,119000,7900,2022-08-18,8500,2022-11-15,Porto
+V000602,57-QA-31,Tesla,Model 3,Elétrico,5,2016,100% Elétrico,85000,16000,2022-08-16,17800,2022-09-14,Porto
+V000603,36-EG-49,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,46000,13200,2022-08-13,15500,2022-12-02,Porto
+V000604,10-EO-18,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,24000,31900,2022-08-16,34900,2022-12-23,Porto
+V000605,68-LW-48,Mercedes,Classe A,Hatchback,5,2016,Gasóleo,86000,9900,2022-08-11,11300,2022-11-04,Porto
+V000606,22-MW-15,Renault,Zoe,Elétrico,5,2020,100% Elétrico,37000,15100,2022-08-28,17300,2022-10-25,Porto

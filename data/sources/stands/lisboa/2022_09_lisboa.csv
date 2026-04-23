@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000119,19-SE-77,Nissan,Qashqai,SUV,5,2016,Híbrido a Gasolina,79000,9700,2022-09-12,10700,2022-12-27,Lisboa
+V000120,43-WO-37,Seat,Arona,SUV,5,2020,Gasolina,23000,13000,2022-09-09,14200,2022-10-21,Lisboa
+V000121,66-CZ-97,Seat,Arona,SUV,5,2016,Gasolina,82000,7300,2022-09-30,,,Lisboa
+V000122,75-HD-35,Kia,Niro,SUV,5,2021,Híbrido a Gasolina,22000,22200,2022-09-23,25600,2022-11-18,Lisboa
+V000123,18-JM-71,Nissan,Qashqai,SUV,5,2015,Gasóleo,104000,8500,2022-09-12,,,Lisboa
+V000124,80-US-33,Tesla,Model 3,Elétrico,5,2017,100% Elétrico,64000,19000,2022-09-27,20400,2023-01-05,Lisboa
+V000125,76-JC-42,Volkswagen,Tiguan,SUV,5,2019,Gasolina,47000,15700,2022-09-28,17300,2022-12-06,Lisboa
+V000126,89-XT-53,Kia,Niro,SUV,5,2019,100% Elétrico,45000,18300,2022-09-21,19800,2022-11-11,Lisboa
+V000127,13-PU-79,Peugeot,208,Citadino,5,2020,100% Elétrico,46000,12000,2022-09-01,13600,2022-12-28,Lisboa
+V000128,53-TE-50,Kia,Niro,SUV,5,2018,Híbrido a Gasolina,59000,13500,2022-09-26,15100,2023-02-08,Lisboa
+V000129,41-ED-16,Volkswagen,Golf,Hatchback,5,2015,Híbrido a Gasolina,108000,7600,2022-09-12,8300,2022-10-25,Lisboa
+V000130,75-OP-49,Renault,Clio,Citadino,5,2019,Gasóleo,69000,7700,2022-09-08,8600,2022-10-30,Lisboa

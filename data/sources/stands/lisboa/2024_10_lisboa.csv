@@ -1,0 +1,17 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000466,54-LJ-67,Citroën,C3,Citadino,5,2019,Gasolina,87000,5200,2024-10-22,,,Lisboa
+V000467,64-XN-27,BMW,X1,SUV,5,2019,Híbrido a Gasolina,60000,16000,2024-10-15,,,Lisboa
+V000468,58-CA-62,Peugeot,208,Citadino,5,2020,Gasolina,59000,7900,2024-10-10,,,Lisboa
+V000469,47-RP-15,Seat,Arona,SUV,5,2019,Gasolina,63000,8300,2024-10-06,,,Lisboa
+V000470,29-IJ-91,Seat,Arona,SUV,5,2021,Gasolina,53000,10300,2024-10-19,,,Lisboa
+V000471,73-CT-56,Citroën,C3,Citadino,5,2019,Gasóleo,89000,5600,2024-10-29,,,Lisboa
+V000472,12-IF-84,Peugeot,208,Citadino,5,2020,100% Elétrico,59000,9700,2024-10-21,,,Lisboa
+V000473,16-JJ-77,Volkswagen,Golf,Hatchback,5,2017,Híbrido a Gasolina,96000,8200,2024-10-05,,,Lisboa
+V000474,97-ZJ-44,BMW,X1,SUV,5,2021,Gasóleo,46000,18600,2024-10-21,,,Lisboa
+V000475,62-KF-23,Mercedes,Classe A,Hatchback,5,2020,Gasóleo,42000,13700,2024-10-19,,,Lisboa
+V000476,99-YZ-24,Citroën,C3,Citadino,5,2017,Gasóleo,121000,4800,2024-10-26,,,Lisboa
+V000477,86-QY-53,Hyundai,Kona,SUV,5,2023,100% Elétrico,35000,21400,2024-10-05,,,Lisboa
+V000478,20-NW-24,Seat,Arona,SUV,5,2023,Gasolina,17000,14800,2024-10-24,15900,2024-12-28,Lisboa
+V000479,15-CJ-95,Tesla,Model 3,Elétrico,5,2018,100% Elétrico,72000,16900,2024-10-25,19800,2024-12-06,Lisboa
+V000480,45-SL-55,BMW,X1,SUV,5,2021,Gasóleo,39000,19400,2024-10-20,22500,2024-12-08,Lisboa
+V000481,31-YR-10,Citroën,C3,Citadino,5,2017,Gasóleo,91000,4800,2024-10-08,5600,2024-12-08,Lisboa

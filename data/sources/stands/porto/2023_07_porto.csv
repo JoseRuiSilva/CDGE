@@ -1,0 +1,16 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000727,90-IR-30,Nissan,Qashqai,SUV,5,2019,Híbrido a Gasolina,67000,13100,2023-07-17,15200,2023-11-06,Porto
+V000728,13-XX-26,Nissan,Qashqai,SUV,5,2020,Gasolina,49000,13000,2023-07-14,14700,2023-08-15,Porto
+V000729,58-YI-94,Audi,A3,Sedan,5,2020,Híbrido a Gasolina,43000,15400,2023-07-06,,,Porto
+V000730,33-CC-73,BMW,X1,SUV,5,2017,Gasóleo,73000,13400,2023-07-01,14700,2023-08-18,Porto
+V000731,58-KU-67,Nissan,Leaf,Elétrico,5,2015,100% Elétrico,90000,7600,2023-07-07,8700,2023-09-10,Porto
+V000732,88-TR-10,Nissan,Qashqai,SUV,5,2016,Gasolina,104000,8200,2023-07-06,9200,2023-10-14,Porto
+V000733,24-GA-51,Tesla,Model 3,Elétrico,5,2017,100% Elétrico,70000,17100,2023-07-30,19900,2023-10-05,Porto
+V000734,73-NQ-61,BMW,X1,SUV,5,2019,Híbrido a Gasolina,45000,17600,2023-07-05,19600,2023-09-30,Porto
+V000735,72-NO-64,Seat,Arona,SUV,5,2020,Gasolina,46000,11300,2023-07-07,13100,2023-08-30,Porto
+V000736,18-OF-14,Volkswagen,Golf,Hatchback,5,2016,Gasóleo,94000,7500,2023-07-04,,,Porto
+V000737,33-ZK-64,Seat,Arona,SUV,5,2020,Gasolina,62000,10700,2023-07-14,11400,2023-11-04,Porto
+V000738,37-OS-51,Seat,Ibiza,Citadino,5,2018,Gasolina,86000,5300,2023-07-22,6100,2023-08-05,Porto
+V000739,92-NV-65,BMW,Série 1,Hatchback,5,2020,Gasolina,48000,13100,2023-07-20,14800,2023-08-20,Porto
+V000740,40-SA-46,Renault,Clio,Citadino,5,2018,Gasolina,71000,5800,2023-07-26,6600,2023-10-29,Porto
+V000741,12-CP-22,Renault,Zoe,Elétrico,5,2022,100% Elétrico,12000,18300,2023-07-19,20100,2023-08-10,Porto

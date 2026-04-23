@@ -1,0 +1,16 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000383,46-OF-64,Kia,Niro,SUV,5,2019,100% Elétrico,74000,12800,2024-04-13,14800,2024-07-11,Lisboa
+V000384,99-RE-60,Hyundai,Kona,SUV,5,2022,Híbrido a Gasolina,41000,17000,2024-04-29,19600,2024-06-26,Lisboa
+V000385,25-CD-67,Seat,Ibiza,Citadino,5,2020,Gasolina,54000,6700,2024-04-19,7700,2024-06-11,Lisboa
+V000386,82-VE-30,BMW,X1,SUV,5,2018,Híbrido a Gasolina,72000,13500,2024-04-24,15800,2024-06-18,Lisboa
+V000387,10-TY-42,Peugeot,3008,SUV,5,2020,Híbrido a Gasolina,73000,12300,2024-04-14,14500,2024-05-29,Lisboa
+V000388,20-TT-10,Citroën,C3,Citadino,5,2021,Gasolina,52000,6900,2024-04-26,7700,2024-09-01,Lisboa
+V000389,87-JK-21,Fiat,500,Citadino,4,2018,Híbrido a Gasolina,74000,6200,2024-04-18,7100,2024-05-08,Lisboa
+V000390,84-LB-21,Seat,Ibiza,Citadino,5,2019,Gasolina,96000,5700,2024-04-22,6700,2024-06-18,Lisboa
+V000391,45-KQ-62,Volkswagen,Golf,Hatchback,5,2021,Híbrido a Gasolina,68000,11200,2024-04-27,12800,2024-06-09,Lisboa
+V000392,50-IQ-83,Mercedes,Classe A,Hatchback,5,2018,Gasolina,94000,10100,2024-04-04,11200,2024-06-28,Lisboa
+V000393,34-AD-13,Volkswagen,Golf,Hatchback,5,2018,Gasolina,98000,8100,2024-04-19,9300,2024-06-29,Lisboa
+V000394,35-WJ-42,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,24000,29800,2024-04-24,31600,2024-06-29,Lisboa
+V000395,34-KK-96,Seat,Arona,SUV,5,2019,Gasolina,45000,9500,2024-04-17,11000,2024-05-06,Lisboa
+V000396,17-QJ-82,Citroën,C3,Citadino,5,2018,Gasolina,110000,5100,2024-04-05,6000,2024-07-31,Lisboa
+V000397,58-UR-31,Seat,Arona,SUV,5,2022,Gasolina,32000,11900,2024-04-18,13100,2024-05-07,Lisboa

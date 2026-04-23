@@ -1,0 +1,15 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000063,84-VP-29,Tesla,Model 3,Elétrico,5,2019,100% Elétrico,56000,22700,2022-05-28,26300,2022-08-24,Lisboa
+V000064,40-SM-39,Citroën,C3,Citadino,5,2015,Gasolina,118000,4700,2022-05-25,,,Lisboa
+V000065,85-KD-66,Renault,Clio,Citadino,5,2017,Gasolina,91000,6200,2022-05-16,6700,2022-06-06,Lisboa
+V000066,98-MU-20,Hyundai,Kona,SUV,5,2018,100% Elétrico,64000,14200,2022-05-05,15600,2022-07-23,Lisboa
+V000067,40-UV-46,Nissan,Leaf,Elétrico,5,2016,100% Elétrico,83000,9200,2022-05-28,10400,2022-06-18,Lisboa
+V000068,57-NE-41,Audi,A3,Sedan,5,2020,Gasolina,40000,17100,2022-05-04,18700,2022-05-30,Lisboa
+V000069,28-HO-91,Peugeot,208,Citadino,5,2018,100% Elétrico,72000,9000,2022-05-06,,,Lisboa
+V000070,48-UN-98,Nissan,Qashqai,SUV,5,2016,Gasolina,100000,9000,2022-05-26,10600,2022-09-03,Lisboa
+V000071,47-AV-60,Renault,Zoe,Elétrico,5,2018,100% Elétrico,41000,12000,2022-05-07,14100,2022-08-02,Lisboa
+V000072,39-TZ-55,Peugeot,208,Citadino,5,2021,Gasóleo,31000,13000,2022-05-24,,,Lisboa
+V000073,56-XE-21,Peugeot,3008,SUV,5,2019,Gasóleo,68000,13700,2022-05-25,14600,2022-09-26,Lisboa
+V000074,31-IP-47,Volkswagen,Golf,Hatchback,5,2018,Gasóleo,76000,10000,2022-05-07,,,Lisboa
+V000075,81-LC-60,Volkswagen,Golf,Hatchback,5,2014,Gasolina,140000,7000,2022-05-31,,,Lisboa
+V000076,89-RK-88,Fiat,500,Citadino,4,2019,Gasolina,62000,8400,2022-05-22,9400,2022-08-01,Lisboa

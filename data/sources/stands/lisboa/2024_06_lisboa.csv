@@ -1,0 +1,15 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000413,37-VF-70,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,75000,9700,2024-06-08,10800,2024-09-25,Lisboa
+V000414,27-CE-92,BMW,Série 1,Hatchback,5,2017,Híbrido a Gasolina,67000,9100,2024-06-12,10400,2024-10-26,Lisboa
+V000415,38-FN-87,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,80000 km,8900,2024-06-29,9800,2024-11-03,Lisboa
+V000416,57-DS-71,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,90000,9000,2024-06-08,10200,2024-06-29,Lisboa
+V000417,94-VC-97,BMW,X1,SUV,5,2020,Híbrido a Gasolina,57000,17800,2024-06-17,20200,2024-10-27,Lisboa
+V000418,52-NL-47,Renault,Zoe,Elétrico,5,2018,100% Elétrico,68000,9100,2024-06-10,10300,2024-10-20,Lisboa
+V000419,94-JZ-89,Mercedes,GLA,SUV,5,2021,Gasóleo,46000,18100,2024-06-24,20400,2024-08-18,Lisboa
+V000420,85-XE-94,Fiat,500,Citadino,4,2021,Gasolina,46000,8400,2024-06-03,9500,2024-07-13,Lisboa
+V000421,86-EP-62,Renault,Zoe,Elétrico,5,2022,100% Elétrico,42000,15000,2024-06-09,17600,2024-07-12,Lisboa
+V000422,69-MP-48,Seat,Arona,SUV,5,2022,Gasolina,38000,11600,2024-06-15,12400,2024-07-26,Lisboa
+V000423,67-MV-50,Hyundai,Kona,SUV,5,2020,Híbrido a Gasolina,60000,13500,2024-06-08,14300,2024-10-09,Lisboa
+V000424,44-ZD-42,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,24000,33300,2024-06-02,36600,2024-08-22,Lisboa
+V000425,11-VA-18,Seat,Ibiza,Citadino,5,2020,GPL,65000,6200,2024-06-24,6800,2024-08-21,Lisboa
+V000426,94-GT-91,Volkswagen,Tiguan,SUV,5,2017,Gasóleo,83000,9700,2024-06-15,11400,2024-07-11,Lisboa

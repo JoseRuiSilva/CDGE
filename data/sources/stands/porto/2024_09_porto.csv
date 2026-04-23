@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000901,12-WG-36,Mercedes,GLA,SUV,5,2020,Gasóleo,60000,17500,2024-09-02,,,Porto
+V000902,37-TQ-66,Nissan,Qashqai,SUV,5,2019,Híbrido a Gasolina,72000,11400,2024-09-01,,,Porto
+V000903,94-MW-72,Volkswagen,Tiguan,SUV,5,2018,Gasóleo,95000,11800,2024-09-11,,,Porto
+V000904,24-PE-19,Kia,Niro,SUV,5,2019,Híbrido a Gasolina,69000,12300,2024-09-02,,,Porto
+V000905,41-KS-79,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,22000,32100,2024-09-14,,,Porto
+V000906,67-XG-33,Nissan,Qashqai,SUV,5,2021,Gasóleo,57000,14100,2024-09-10,16500,2024-12-23,Porto
+V000907,64-MZ-72,Nissan,Qashqai,SUV,5,2019,Gasóleo,73000,10300,2024-09-07,,,Porto
+V000908,51-ZR-72,Renault,Zoe,Elétrico,5,2019,100% Elétrico,70000,10400,2024-09-02,,,Porto
+V000909,21-SO-88,Volkswagen,Golf,Hatchback,5,2017,Gasolina,104000,7500,2024-09-03,,,Porto
+V000910,29-UK-19,Peugeot,3008,SUV,5,2019,Gasóleo,76000,11400,2024-09-22,,,Porto
+V000911,59-AA-38,Peugeot,208,Citadino,5,2020,Gasóleo,63000,8300,2024-09-25,,,Porto
+V000912,55-WS-29,Volkswagen,Tiguan,SUV,5,2019,Híbrido a Gasolina,91000,12300,2024-09-19,,,Porto
+V000913,50-HV-36,Volkswagen,Tiguan,SUV,5,2021,Gasóleo,51000,16800,2024-09-04,18500,2024-10-03,Porto

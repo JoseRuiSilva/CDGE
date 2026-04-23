@@ -1,0 +1,8 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001117,15-JN-21,Renault,Zoe,Elétrico,5,2018,100% Elétrico,66000,10500,2023-06-18,12300,2023-07-25,Braga
+V001118,61-RD-43,Volkswagen,Golf,Hatchback,5,2020,Gasolina,45000,11500,2023-06-03,13300,2023-10-13,Braga
+V001119,12-PG-26,Hyundai,Kona,SUV,5,2022,Híbrido a Gasolina,33000,21100,2023-06-08,24000,2023-07-16,Braga
+V001120,40-BN-37,Hyundai,Kona,SUV,5,2021,Híbrido a Gasolina,41000,17900,2023-06-17,20000,2023-08-16,Braga
+V001121,42-UT-73,seat,Ibiza,Citadino,5,2018,GPL,84000,5200,2023-06-10,6000,2023-07-23,Braga
+V001122,41-EW-15,Citroën,C3,Citadino,5,2019,Gasolina,84000,5800,2023-06-09,,,Braga
+V001123,24-WA-62,Seat,Arona,SUV,5,2022,Gasolina,16000,14200,2023-06-02,16200,2023-06-14,Braga

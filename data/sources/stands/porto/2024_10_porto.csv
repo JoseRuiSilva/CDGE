@@ -1,0 +1,12 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000914,25-MA-66,Seat,Ibiza,Citadino,5,2020,Gasolina,49000,7300,2024-10-30,,,Porto
+V000915,32-QS-76,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,62000,10200,2024-10-07,10900,2024-11-19,Porto
+V000916,56-PI-75,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,42000,24600,2024-10-04,28400,2024-11-08,Porto
+V000917,18-NU-48,Seat,Ibiza,Citadino,5,2018,Gasolina,95000,5100,2024-10-26,,,Porto
+V000918,15-EH-32,Mercedes,Classe A,Hatchback,5,2019,Híbrido a Gasolina,55000,12800,2024-10-26,,,Porto
+V000919,94-JL-89,Volkswagen,Tiguan,SUV,5,2018,Gasóleo,79000,11600,2024-10-23,,,Porto
+V000920,24-ZF-13,Volkswagen,Tiguan,SUV,5,2017,Gasóleo,120000,9900,2024-10-30,,,Porto
+V000921,52-AP-14,Seat,Arona,SUV,5,2021,Gasolina,50000,10500,2024-10-21,,,Porto
+V000922,38-CN-18,Volkswagen,Tiguan,SUV,5,2018,Gasolina,101000,10400,2024-10-18,,,Porto
+V000923,70-IE-51,Citroën,C3,Citadino,5,2017,Gasóleo,124000,4800,2024-10-28,,,Porto
+V000924,28-HV-20,Volkswagen,Golf,Hatchback,5,2021,Gasóleo,67000,10900,2024-10-23,12600,2024-12-07,Porto

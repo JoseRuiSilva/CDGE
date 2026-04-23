@@ -1,0 +1,12 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001248,69-CG-75,Mercedes,GLA,SUV,5,2021,Gasolina,49000,17300,2024-08-24,19800,2024-12-01,Braga
+V001249,35-ZM-32,Fiat,500,Citadino,4,2022,Gasolina,31000,10300,2024-08-15,11500,2024-11-05,Braga
+V001250,73-AG-25,Nissan,Qashqai,SUV,5,2020,Gasolina,79000,11300,2024-08-14,12800,2024-12-13,Braga
+V001251,60-NE-20,Renault,Clio,Citadino,5,2021,GPL,50000,7900,2024-08-26,,,Braga
+V001252,13-YC-24,BMW,X1,SUV,5,2016,Gasóleo,97000,10400,2024-08-05,11800,2024-11-09,Braga
+V001253,18-WS-99,BMW,Série 1,Hatchback,5,2018,Híbrido a Gasolina,82000,9900,2024-08-04,,,Braga
+V001254,85-JU-86,Mercedes,Classe A,Hatchback,5,2016,Gasóleo,91000,7800,2024-08-01,8300,2024-12-19,Braga
+V001255,63-MT-81,Hyundai,Kona,SUV,5,2019,100% Elétrico,70000,13600,2024-08-20,15500,2024-12-22,Braga
+V001256,32-YK-65,Volkswagen,Tiguan,SUV,5,2018,Híbrido a Gasolina,70000,12200,2024-08-31,13300,2024-11-14,Braga
+V001257,88-OZ-11,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,57000,21600,2024-08-31,,,Braga
+V001258,79-FD-21,Renault,Zoe,Elétrico,5,2022,100% Elétrico,47000,13400,2024-08-09,15000,2024-09-03,Braga

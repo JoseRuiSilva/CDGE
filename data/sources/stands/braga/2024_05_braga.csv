@@ -1,0 +1,11 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001219,31-LJ-36,Audi,A3,Sedan,5,2021,Gasóleo,44000,15800,2024-05-14,,,Braga
+V001220,87-EU-10,BMW,X1,SUV,5,2021,Gasóleo,48000,18900,2024-05-27,20300,2024-06-24,Braga
+V001221,69-LA-78,BMW,Série 1,Hatchback,5,2022,Gasóleo,34000,15800,2024-05-24,18100,2024-07-27,Braga
+V001222,44-PE-58,Citroën,C3,Citadino,5,2016,Gasóleo,132000,4300,2024-05-03,4800,2024-08-15,Braga
+V001223,60-BR-33,Peugeot,208,Citadino,5,2019,Gasolina,81000,6900,2024-05-05,7900,2024-07-17,Braga
+V001224,93-SF-13,Kia,Niro,SUV,5,2023,Híbrido a Gasolina,18000,21500,2024-05-06,25200,2024-07-12,Braga
+V001225,84-CU-48,Peugeot,3008,SUV,5,2017,Gasolina,107000,9400,2024-05-19,10700,2024-08-22,Braga
+V001226,79-GK-81,Fiat,500,Citadino,4,2021,Gasolina,47000,8900,2024-05-06,,,Braga
+V001227,12-SK-43,Seat,Arona,SUV,5,2020,Gasolina,60000,9100,2024-05-04,9900,2024-07-29,Braga
+V001228,83-FO-18,Peugeot,208,Citadino,5,2019,100% Elétrico,52000,9800,2024-05-16,10400,2024-09-17,Braga

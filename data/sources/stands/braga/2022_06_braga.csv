@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001001,65-CV-67,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,41000,11900,2022-06-22,13500,2022-07-19,Braga
+V001002,50-OL-71,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,40000,27900,2022-06-03,31500,2022-07-01,Braga
+V001003,61-OO-67,Renault,Clio,Citadino,5,2015,Gasóleo,90000,5000,2022-06-18,5500,2022-10-26,Braga
+V001004,11-NZ-94,Tesla,Model 3,Elétrico,5,2019,100% Elétrico,46000,25300,2022-06-13,28000,2022-08-02,Braga
+V001005,80-IH-34,Peugeot,3008,SUV,5,2017,Híbrido a Gasolina,61000,12100,2022-06-07,13100,2022-09-27,Braga
+V001006,51-WP-87,Tesla,Model 3,Elétrico,5,2019,100% Elétrico,44000,26000,2022-06-14,27800,2022-07-23,Braga
+V001007,64-TD-86,Seat,Arona,SUV,5,2020,Gasolina,27000,13100,2022-06-16,15000,2022-09-15,Braga
+V001008,51-WH-50,Volkswagen,Golf,Hatchback,5,2018,Híbrido a Gasolina,82000,9800,2022-06-26,10700,2022-10-22,Braga
+V001009,51-ZU-83,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,60000,11800,2022-06-16,,,Braga
+V001010,28-TK-20,Seat,Arona,SUV,5,2015,Gasolina,82000,6700,2022-06-19,7400,2022-07-25,Braga
+V001011,17-PH-38,Fiat,500,Citadino,4,2018,Híbrido a Gasolina,60000,8300,2022-06-24,9200,2022-08-11,Braga
+V001012,92-GT-87,Renault,Clio,Citadino,5,2015,GPL,117000,4700,2022-06-16,5400,2022-08-18,Braga

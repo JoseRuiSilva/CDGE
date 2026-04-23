@@ -1,0 +1,10 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001229,81-QH-26,Seat,Arona,SUV,5,2019,Gasolina,73000,8400,2024-06-29,9000,2024-10-02,Braga
+V001230,80-GF-14,Renault,Zoe,Elétrico,5,2019,100% Elétrico,70000,10200,2024-06-25,,,Braga
+V001231,55-FH-91,Volkswagen,Golf,Hatchback,5,2018,Gasóleo,96000,8300,2024-06-20,9500,2024-10-05,Braga
+V001232,18-LF-36,Hyundai,Kona,SUV,5,2019,Híbrido a Gasolina,60000,13500,2024-06-30,14500,2024-10-02,Braga
+V001233,85-XL-94,BMW,Série 1,Hatchback,5,2022,Híbrido a Gasolina,47000,15300,2024-06-03,,,Braga
+V001234,97-SP-21,Renault,Clio,Citadino,5,2018,Gasóleo,94000,5900,2024-06-21,6300,2024-10-31,Braga
+V001235,99-ON-69,Volkswagen,Tiguan,SUV,5,2020,Gasolina,51000,13900,2024-06-21,,,Braga
+V001236,14-OE-53,Peugeot,3008,SUV,5,2019,Gasóleo,63000,11100,2024-06-25,12600,2024-08-06,Braga
+V001237,53-GR-11,Hyundai,Kona,SUV,5,2021,Híbrido a Gasolina,64000,14300,2024-06-30,15900,2024-08-30,Braga

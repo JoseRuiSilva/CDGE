@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000427,19-UO-45,Volkswagen,Tiguan,SUV,5,2017,Gasolina,77000,10300,2024-07-13,11700,2024-11-21,Lisboa
+V000428,17-II-32,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,29000,27700,2024-07-22,30500,2024-11-10,Lisboa
+V000429,43-DB-19,Fiat,500,Citadino,4,2020,Híbrido a Gasolina,42000,8700,2024-07-20,10200,2024-08-28,Lisboa
+V000430,95-MI-29,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,49000,24500,2024-07-25,,,Lisboa
+V000431,10-MW-71,Nissan,Leaf,Elétrico,5,2022,100% Elétrico,46000,14500,2024-07-19,16300,2024-08-17,Lisboa
+V000432,68-YY-47,Peugeot,208,Citadino,5,2021,100% Elétrico,59000,10200,2024-07-11,10900,2024-10-18,Lisboa
+V000433,66-XG-27,Nissan,Qashqai,SUV,5,2020,Gasolina,54000,12600,2024-07-13,14700,2024-08-15,Lisboa
+V000434,12-BK-17,Mercedes,GLA,SUV,5,2020,Gasóleo,72000,15900,2024-07-08,18700,2024-11-12,Lisboa
+V000435,39-CB-28,Tesla,Model 3,Elétrico,5,2023,100% Elétrico,30000,30700,2024-07-13,35300,2024-09-01,Lisboa
+V000436,22-OT-31,Mercedes,GLA,SUV,5,2022,Gasóleo,21000,22100,2024-07-20,25600,2024-10-18,Lisboa
+V000437,96-MK-25,BMW,X1,SUV,5,2019,Híbrido a Gasolina,72000,13800,2024-07-04,16000,2024-10-10,Lisboa
+V000438,31-WL-80,BMW,Série 1,Hatchback,5,2021,Gasóleo,45000,13800,2024-07-27,15900,2024-09-13,Lisboa

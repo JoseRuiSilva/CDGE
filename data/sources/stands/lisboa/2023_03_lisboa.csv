@@ -1,0 +1,16 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000200,30-OO-10,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,28000,29300,2023-03-29,,,Lisboa
+V000201,21-UL-42,Seat,Ibiza,Citadino,5,2019,GPL,56000,6700,2023-03-30,,,Lisboa
+V000202,10-GP-19,Mercedes,Classe A,Hatchback,5,2018,Híbrido a Gasolina,90000,11500,2023-03-02,13200,2023-04-06,Lisboa
+V000203,39-MC-23,Nissan,Qashqai,SUV,5,2020,Híbrido a Gasolina,52000,15600,2023-03-01,17400,2023-04-15,Lisboa
+V000204,37-UX-29,Renault,Clio,Citadino,5,2020,Gasolina,50000,7500,2023-03-13,8300,2023-05-06,Lisboa
+V000205,27-HI-92,BMW,Série 1,Hatchback,5,2021,Gasolina,26000,16200,2023-03-07,17800,2023-07-06,Lisboa
+V000206,87-QG-60,Fiat,500,Citadino,4,2020,Híbrido a Gasolina,39000,10000,2023-03-20,10800,2023-06-17,Lisboa
+V000207,50-EM-82,BMW,X1,SUV,5,2020,Híbrido a Gasolina,39000,20000,2023-03-31,23600,2023-04-15,Lisboa
+V000208,60-QJ-90,Fiat,500,Citadino,4,2016,Gasolina,68000,5400,2023-03-16,,,Lisboa
+V000209,29-RK-60,Tesla,Model 3,Elétrico,5,2018,100% Elétrico,53000,19600,2023-03-14,23100,2023-05-17,Lisboa
+V000210,65-DO-88,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,35000,31900,2023-03-21,34100,2023-06-03,Lisboa
+V000211,43-FL-26,Seat,Arona,SUV,5,2021,Gasolina,41000,11400,2023-03-24,12800,2023-07-02,Lisboa
+V000212,83-UC-73,Nissan,Leaf,Elétrico,5,2021,100% Elétrico,29000,16200,2023-03-24,17700,2023-04-21,Lisboa
+V000213,75-AB-11,Volkswagen,Golf,Hatchback,5,2019,Gasóleo,52000,11600,2023-03-19,12600,2023-04-29,Lisboa
+V000214,93-NH-51,Citroën,C3,Citadino,5,2019,Gasolina,65000,6200,2023-03-05,,,Lisboa

@@ -1,0 +1,11 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000965,82-SW-78,Mercedes,GLA,SUV,5,2017,Gasolina,68000,14500,2022-02-16,,,Braga
+V000966,72-DK-81,Audi,A3,Sedan,5,2015,Gasolina,96000,9000,2022-02-10,10100,2022-03-15,Braga
+V000967,85-XS-79,Seat,Arona,SUV,5,2019,Gasolina,39000,11300,2022-02-16,12400,2022-03-22,Braga
+V000968,77-FQ-57,Nissan,Qashqai,SUV,5,2019,Gasolina,46000,13700,2022-02-01,15700,2022-06-04,Braga
+V000969,88-AB-58,Mercedes,GLA,SUV,5,2020,Gasolina,38000,19800,2022-02-15,22300,2022-04-20,Braga
+V000970,39-LM-15,BMW,Série 1,Hatchback,5,2019,Híbrido a Gasolina,56000,14900,2022-02-01,,,Braga
+V000971,93-XI-62,Fiat,500,Citadino,4,2018,Híbrido a Gasolina,72000,7400,2022-02-09,,,Braga
+V000972,60-BW-67,Seat,Arona,SUV,5,2018,Gasolina,61000,9800,2022-02-14,11100,2022-02-28,Braga
+V000973,98-MJ-78,BMW,Série 1,Hatchback,5,2020,Gasóleo,28000,15800,2022-02-04,18600,2022-04-22,Braga
+V000974,76-BP-71,Nissan,Leaf,Elétrico,5,2020,100% Elétrico,29000,16400,2022-02-09,17800,2022-06-28,Braga

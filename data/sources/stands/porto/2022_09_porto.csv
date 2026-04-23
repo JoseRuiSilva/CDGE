@@ -1,0 +1,12 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000607,62-YR-25,Seat,Arona,SUV,5,2017,Gasolina,71000,8500,2022-09-21,9900,2022-11-27,Porto
+V000608,98-VX-69,BMW,X1,SUV,5,2018,Gasóleo,50000,16100,2022-09-25,17200,2022-10-13,Porto
+V000609,20-RV-41,Audi,A3,Sedan,5,2014,Híbrido a Gasolina,110000,8800,2022-09-13,9800,2023-01-27,Porto
+V000610,95-YA-96,Seat,Ibiza,Citadino,5,2013,Gasóleo,122000,4000,2022-09-09,4300,2022-12-30,Porto
+V000611,49-OB-86,Seat,Ibiza,Citadino,5,2019,Gasolina,52000 km,7400,2022-09-23,8200,2022-10-31,Porto
+V000612,34-VV-18,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,16000,31000,2022-09-30,34100,2022-10-15,Porto
+V000613,34-TG-79,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,41000,13700,2022-09-26,15400,2022-12-29,Porto
+V000614,18-VI-93,Seat,Ibiza,Citadino,5,2017,Gasolina,66000,6100,2022-09-04,6800,2022-11-09,Porto
+V000615,22-TK-90,Mercedes,GLA,SUV,5,2019,Gasóleo,39000,20200,2022-09-14,22000,2022-11-08,Porto
+V000616,71-CK-12,Mercedes,Classe A,Hatchback,5,2019,Híbrido a Gasolina,63000,13900,2022-09-23,,,Porto
+V000617,64-YH-89,Peugeot,208,Citadino,5,2020,Gasóleo,27000,11300,2022-09-21,12400,2022-11-03,Porto

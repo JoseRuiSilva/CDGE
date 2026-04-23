@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000232,57-WV-60,Volkswagen,Golf,Hatchback,5,2015,Gasolina,127000,7200,2023-05-26,8500,2023-09-08,Lisboa
+V000233,85-FM-49,Volkswagen,Golf,Hatchback,5,2017,Gasóleo,110000,8500,2023-05-06,9200,2023-08-17,Lisboa
+V000234,82-BF-87,Seat,Arona,SUV,5,2022,Gasolina,33000,13500,2023-05-06,,,Lisboa
+V000235,50-FU-21,Renault,Zoe,Elétrico,5,2021,100% Elétrico,32000,14300,2023-05-20,15800,2023-07-31,Lisboa
+V000236,16-MO-63,Mercedes,Classe A,Hatchback,5,2016,Híbrido a Gasolina,95000,9000,2023-05-11,10300,2023-06-19,Lisboa
+V000237,19-ZB-47,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,58000,11200,2023-05-16,12100,2023-07-24,Lisboa
+V000238,21-KT-88,Nissan,Qashqai,SUV,5,2019,Gasolina,69000,11000,2023-05-11,,,Lisboa
+V000239,80-XX-79,Mercedes,Classe A,Hatchback,5,2020,Gasolina,42000,13700,2023-05-21,15200,2023-07-20,Lisboa
+V000240,94-UT-71,Seat,Arona,SUV,5,2020,Gasolina,51000,10300,2023-05-08,11000,2023-09-06,Lisboa
+V000241,79-MF-57,Mercedes,GLA,SUV,5,2022,Gasolina,21000,25100,2023-05-10,26900,2023-07-28,Lisboa
+V000242,54-ZR-62,Renault,Clio,Citadino,5,2018,Gasóleo,65000,6500,2023-05-09,7000,2023-06-14,Lisboa
+V000243,83-HP-48,Peugeot,208,Citadino,5,2019,Gasóleo,62000,8700,2023-05-27,,,Lisboa
+V000244,67-FF-37,Hyundai,Kona,SUV,5,2018,Híbrido a Gasolina,87000,12000,2023-05-17,14100,2023-06-28,Lisboa

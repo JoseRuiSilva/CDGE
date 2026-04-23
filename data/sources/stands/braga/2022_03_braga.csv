@@ -1,0 +1,9 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000975,74-YG-36,Mercedes,GLA,SUV,5,2019,Híbrido a Gasolina,48000,20400,2022-03-03,23200,2022-03-25,Braga
+V000976,29-JQ-18,Mercedes,GLA,SUV,5,2019,Gasolina,37000,18900,2022-03-05,20900,2022-03-31,Braga
+V000977,50-BD-97,BMW,Série 1,Hatchback,5,2017,Gasolina,55000,11200,2022-03-24,12100,2022-05-16,Braga
+V000978,97-HA-58,fiat,500,Citadino,4,2020,Gasolina,34000,9300,2022-03-24,,,Braga
+V000979,70-SU-59,Renault,Zoe,Elétrico,5,2015,100% Elétrico,70000,7900,2022-03-25,9000,2022-04-11,Braga
+V000980,68-PE-68,BMW,Série 1,Hatchback,5,2019,Gasolina,48000,13200,2022-03-24,,,Braga
+V000981,48-EB-68,Volkswagen,Golf,Hatchback,5,2018,Gasolina,60000,10900,2022-03-21,12100,2022-04-07,Braga
+V000982,63-NO-67,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,49000,13000,2022-03-28,,,Braga

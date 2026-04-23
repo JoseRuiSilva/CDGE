@@ -1,0 +1,9 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001073,31-YI-75,Seat,Ibiza,Citadino,5,2018,GPL,74000,5700,2023-01-18,6300,2023-02-01,Braga
+V001074,45-OH-68,Renault,Clio,Citadino,5,2018,GPL,58000,6000,2023-01-13,6800,2023-04-29,Braga
+V001075,60-RR-61,BMW,X1,SUV,5,2017,Gasóleo,69000,12400,2023-01-21,14200,2023-06-07,Braga
+V001076,62-FQ-73,Renault,Clio,Citadino,5,2019,Gasóleo,79000,6900,2023-01-17,7700,2023-04-03,Braga
+V001077,12-GN-91,Mercedes,GLA,SUV,5,2019,Gasolina,57000,15900,2023-01-12,17200,2023-05-28,Braga
+V001078,42-PM-69,Volkswagen,Golf,Hatchback,5,2019,Gasóleo,63000,10300,2023-01-25,12000,2023-04-05,Braga
+V001079,47-LB-54,Seat,Arona,SUV,5,2016,Gasolina,73000,7300,2023-01-07,,,Braga
+V001080,52-GJ-74,Seat,Arona,SUV,5,2018,Gasolina,69000,8400,2023-01-21,9000,2023-06-04,Braga

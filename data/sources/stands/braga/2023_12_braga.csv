@@ -1,0 +1,10 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001166,60-NN-15,Kia,Niro,SUV,5,2020,Híbrido a Gasolina,36000,17800,2023-12-28,19400,2024-04-04,Braga
+V001167,60-TC-13,BMW,X1,SUV,5,2021,Híbrido a Gasolina,39000,22700,2023-12-14,25000,2024-02-16,Braga
+V001168,75-RF-65,BMW,Série 1,Hatchback,5,2016,Gasóleo,101000,8400,2023-12-31,9700,2024-01-25,Braga
+V001169,15-DH-48,Renault,Clio,Citadino,5,2017,GPL,83000,5000,2023-12-14,5500,2024-03-02,Braga
+V001170,77-EN-15,Mercedes,GLA,SUV,5,2021,Híbrido a Gasolina,37000,23600,2023-12-15,,,Braga
+V001171,82-SW-18,Peugeot,208,Citadino,5,2018,Gasóleo,79000,7400,2023-12-04,8300,2023-12-28,Braga
+V001172,83-ZM-94,Nissan,Qashqai,SUV,5,2017,Gasolina,84000,9300,2023-12-01,10700,2024-03-29,Braga
+V001173,82-DJ-12,Citroën,C3,Citadino,5,2016,Gasóleo,91000,4800,2023-12-20,5200,2024-03-04,Braga
+V001174,38-JY-28,Hyundai,Kona,SUV,5,2021,Gasolina,36000,16100,2023-12-26,,,Braga

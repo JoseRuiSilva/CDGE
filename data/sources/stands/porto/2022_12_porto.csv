@@ -1,0 +1,16 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000641,85-RG-59,Fiat,500,Citadino,4,2021,Gasolina,20000,11900,2022-12-31,13100,2023-01-12,Porto
+V000642,47-HP-97,Nissan,Qashqai,SUV,5,2018,Gasóleo,75000,11200,2022-12-22,12300,2023-04-30,Porto
+V000643,37-PJ-58,Fiat,500,Citadino,4,2021,Gasolina,28000,11600,2022-12-22,13200,2023-05-05,Porto
+V000644,60-JV-30,Renault,Zoe,Elétrico,5,2020,100% Elétrico,33000,15200,2022-12-05,17700,2023-01-31,Porto
+V000645,34-WR-60,Citroën,C3,Citadino,5,2016,Gasolina,100000,4800,2022-12-22,5300,2023-03-16,Porto
+V000646,71-JE-36,Nissan,Qashqai,SUV,5,2019,Híbrido a Gasolina,56000,14400,2022-12-28,16000,2023-02-13,Porto
+V000647,28-MN-96,Audi,A3,Sedan,5,2018,Híbrido a Gasolina,55000,14300,2022-12-01,,,Porto
+V000648,61-HB-25,Hyundai,Kona,SUV,5,2020,100% Elétrico,37000,20200,2022-12-16,22900,2023-02-04,Porto
+V000649,93-MI-90,Renault,Clio,Citadino,5,2019,GPL,62000,7600,2022-12-31,8800,2023-02-03,Porto
+V000650,22-ZS-33,Seat,Arona,SUV,5,2018,Gasolina,70000,9500,2022-12-04,10400,2023-04-17,Porto
+V000651,99-AM-81,Kia,Niro,SUV,5,2016,Híbrido a Gasolina,77000,11600,2022-12-10,12900,2023-02-07,Porto
+V000652,33-TW-33,Tesla,Model 3,Elétrico,5,2016,100% Elétrico,84000 km,17300,2022-12-17,,,Porto
+V000653,25-QJ-56,Tesla,Model 3,Elétrico,5,2017,100% Elétrico,67000,17900,2022-12-04,19200,2022-12-24,Porto
+V000654,72-WK-76,Volkswagen,Tiguan,SUV,5,2013,Híbrido a Gasolina,125000,9500,2022-12-22,10200,2023-04-26,Porto
+V000655,37-ET-80,Kia,Niro,SUV,5,2020,Híbrido a Gasolina,28000,18600,2022-12-17,21600,2023-03-15,Porto

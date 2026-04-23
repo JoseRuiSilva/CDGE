@@ -1,0 +1,10 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001034,90-ET-53,Hyundai,Kona,SUV,5,2017,Híbrido a Gasolina,50000,13100,2022-09-15,,,Braga
+V001035,24-QR-15,Renault,Zoe,Elétrico,5,2015,100% Elétrico,70000,8200,2022-09-06,,,Braga
+V001036,57-RM-76,Peugeot,208,Citadino,5,2020,Gasolina,50000,10600,2022-09-18,12200,2022-12-22,Braga
+V001037,74-ZD-73,Renault,Clio,Citadino,5,2017,Gasóleo,60000,6700,2022-09-24,7700,2022-11-23,Braga
+V001038,34-AA-13,BMW,X1,SUV,5,2017,Híbrido a Gasolina,70000,15000,2022-09-08,,,Braga
+V001039,86-JK-59,Peugeot,3008,SUV,5,2017,Híbrido a Gasolina,80000,11200,2022-09-22,11900,2023-01-15,Braga
+V001040,54-AI-99,Seat,Arona,SUV,5,2017,Gasolina,81000,8100,2022-09-20,9100,2022-10-10,Braga
+V001041,97-PA-58,Renault,Zoe,Elétrico,5,2017,100% Elétrico,70000,10000,2022-09-25,,,Braga
+V001042,53-HT-70,Citroën,C3,Citadino,5,2017,Gasóleo,62000,6100,2022-09-16,6800,2022-10-22,Braga

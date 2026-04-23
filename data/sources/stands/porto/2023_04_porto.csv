@@ -1,0 +1,11 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000692,97-MV-24,Citroën,C3,Citadino,5,2020,Gasóleo,42000,7600,2023-04-05,8300,2023-06-29,Porto
+V000693,15-TE-32,Kia,Niro,SUV,5,2018,100% Elétrico,59000,15000,2023-04-10,,,Porto
+V000694,73-VL-43,Volkswagen,Golf,Hatchback,5,2019,Gasolina,69000,10100,2023-04-14,11000,2023-05-22,Porto
+V000695,24-SN-45,Audi,A3,Sedan,5,2020,Gasóleo,43000,14600,2023-04-01,16900,2023-08-13,Porto
+V000696,87-ZU-52,Volkswagen,Golf,Hatchback,5,2017,Gasolina,91000,8100,2023-04-25,,,Porto
+V000697,84-WN-77,Hyundai,Kona,SUV,5,2019,Híbrido a Gasolina,66000,13500,2023-04-13,14900,2023-06-22,Porto
+V000698,17-LL-27,Mercedes,Classe A,Hatchback,5,2015,Híbrido a Gasolina,81000,8600,2023-04-23,10100,2023-06-08,Porto
+V000699,13-WN-57,Volkswagen,Tiguan,SUV,5,2015,Híbrido a Gasolina,81000,9400,2023-04-30,10400,2023-06-17,Porto
+V000700,63-EY-33,BMW,X1,SUV,5,2017,Gasolina,60000,12900,2023-04-16,13700,2023-05-17,Porto
+V000701,17-UB-87,Volkswagen,Tiguan,SUV,5,2017,Gasolina,84000,11200,2023-04-10,12000,2023-07-04,Porto

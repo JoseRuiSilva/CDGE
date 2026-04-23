@@ -1,0 +1,18 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000215,61-CO-46,Volkswagen,Golf,Hatchback,5,2014,Híbrido a Gasolina,101000,7000,2023-04-19,,,Lisboa
+V000216,85-PY-35,Seat,Arona,SUV,5,2018,Gasolina,59000,8500,2023-04-03,9500,2023-06-16,Lisboa
+V000217,10-YV-58,Fiat,500,Citadino,4,2022,Híbrido a Gasolina,17000,12400,2023-04-05,14600,2023-04-19,Lisboa
+V000218,39-QN-99,Audi,A3,Sedan,5,2020,Gasóleo,49000,15700,2023-04-17,16800,2023-07-09,Lisboa
+V000219,26-HJ-43,Seat,Ibiza,Citadino,5,2020,GPL,60000,6500,2023-04-19,7400,2023-08-20,Lisboa
+V000220,31-OO-50,Hyundai,Kona,SUV,5,2020,Gasolina,39000,14600,2023-04-27,15700,2023-06-05,Lisboa
+V000221,99-TB-37,Fiat,500,Citadino,4,2019,Híbrido a Gasolina,45000,8200,2023-04-07,9500,2023-07-05,Lisboa
+V000222,32-AM-67,Volkswagen,Golf,Hatchback,5,2018,Gasolina,74000,8800,2023-04-08,,,Lisboa
+V000223,57-VU-92,Fiat,500,Citadino,4,2016,Gasolina,90000,5100,2023-04-04,,,Lisboa
+V000224,69-BF-83,Peugeot,208,Citadino,5,2022,100% Elétrico,32000,14100,2023-04-03,15200,2023-07-08,Lisboa
+V000225,89-TH-92,Audi,A3,Sedan,5,2016,Gasolina,108000,8800,2023-04-13,9400,2023-06-02,Lisboa
+V000226,77-HU-79,Renault,Clio,Citadino,5,2021,Gasóleo,40000,8900,2023-04-02,,,Lisboa
+V000227,13-KT-38,Kia,Niro,SUV,5,2019,Híbrido a Gasolina,58000,15000,2023-04-12,16400,2023-08-01,Lisboa
+V000228,22-HV-40,Renault,Zoe,Elétrico,5,2022,100% Elétrico,26000,16400,2023-04-09,19300,2023-06-19,Lisboa
+V000229,59-LF-32,Renault,Zoe,Elétrico,5,2022,100% Elétrico,19000,17300,2023-04-30,,,Lisboa
+V000230,82-ES-34,Seat,Arona,SUV,5,2020,Gasolina,48000,11100,2023-04-24,,,Lisboa
+V000231,71-AK-88,Renault,Zoe,Elétrico,5,2018,100% Elétrico,56000,10000,2023-04-16,10600,2023-06-23,Lisboa

@@ -1,0 +1,8 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001081,68-LT-51,Volkswagen,Tiguan,SUV,5,2015,Híbrido a Gasolina,122000,9700,2023-02-09,11200,2023-05-17,Braga
+V001082,29-MK-94,Mercedes,GLA,SUV,5,2019,Híbrido a Gasolina,63000,16100,2023-02-04,19000,2023-03-05,Braga
+V001083,48-AE-34,Mercedes,Classe A,Hatchback,5,2020,Gasolina,35000,15100,2023-02-05,16100,2023-04-14,Braga
+V001084,71-ZC-38,Volkswagen,Tiguan,SUV,5,2017,Híbrido a Gasolina,74000,11200,2023-02-05,12200,2023-02-26,Braga
+V001085,70-IS-81,Kia,Niro,SUV,5,2019,Híbrido a Gasolina,66000,14000,2023-02-16,,,Braga
+V001086,41-HA-65,Hyundai,Kona,SUV,5,2020,Híbrido a Gasolina,61000,15700,2023-02-21,18200,2023-05-15,Braga
+V001087,38-HO-29,Nissan,Qashqai,SUV,5,2016,Gasóleo,109000,8500,2023-02-16,9900,2023-04-26,Braga

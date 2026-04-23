@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000839,81-RU-94,BMW,Série 1,Hatchback,5,2020,Híbrido a Gasolina,72000,12100,2024-04-09,14200,2024-08-02,Porto
+V000840,85-TI-88,Peugeot,208,Citadino,5,2021,Gasolina,32000,10600,2024-04-07,11700,2024-07-26,Porto
+V000841,16-EQ-66,Citroën,C3,Citadino,5,2020,Gasolina,65000,5900,2024-04-26,6500,2024-05-08,Porto
+V000842,87-GF-91,Citroën,C3,Citadino,5,2018,Gasolina,86000,5000,2024-04-25,5600,2024-07-27,Porto
+V000843,32-AL-69,Audi,A3,Sedan,5,2019,Híbrido a Gasolina,78000,11800,2024-04-18,13400,2024-08-19,Porto
+V000844,56-QG-10,Volkswagen,Golf,Hatchback,5,2017,Gasóleo,113000,7500,2024-04-20,8100,2024-05-04,Porto
+V000845,99-WI-45,Volkswagen,Golf,Hatchback,5,2019,Híbrido a Gasolina,71000,9600,2024-04-30,10600,2024-09-11,Porto
+V000846,13-TW-29,Kia,Niro,SUV,5,2020,Híbrido a Gasolina,65000,13800,2024-04-28,14700,2024-06-05,Porto
+V000847,79-IG-93,Peugeot,3008,SUV,5,2019,Híbrido a Gasolina,53000,12700,2024-04-03,13600,2024-07-04,Porto
+V000848,61-NV-95,Mercedes,GLA,SUV,5,2021,Gasóleo,49000,19400,2024-04-28,22800,2024-05-13,Porto
+V000849,10-JI-81,Peugeot,3008,SUV,5,2019,Híbrido a Gasolina,58000,12600,2024-04-05,13600,2024-07-30,Porto
+V000850,85-UA-31,Volkswagen,Golf,Hatchback,5,2021,Gasóleo,45000,11900,2024-04-23,12900,2024-05-27,Porto

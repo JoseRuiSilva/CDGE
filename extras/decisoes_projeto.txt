@@ -1,0 +1,585 @@
+================================================================================
+  PROJETO CDGE — AUTO ESCALA
+  Decisões de Arquitetura, Funcionamento e Implementação
+  Universidade do Minho — Licenciatura em Ciência de Dados
+  Ano Letivo 2025/2026
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. CONTEXTO E PROBLEMA DE NEGÓCIO
+--------------------------------------------------------------------------------
+
+A Auto Escala é uma rede nacional fictícia de stands de automóveis usados e
+seminovos, com presença em várias localizações em Portugal Continental. O grande
+desafio do negócio não é vender o que está em stock — é antecipar o que os
+clientes vão querer comprar a curto e médio prazo.
+
+O sistema a desenvolver tem como objetivo identificar tendências emergentes de
+procura no mercado automóvel, cruzando dados internos de inventário e vendas
+com sinais externos de interesse dos consumidores (Google Trends), de forma a
+apoiar decisões estratégicas de aquisição de viaturas.
+
+A pergunta central que o sistema responde é:
+  "O que devo comprar hoje para não ficar com dinheiro parado amanhã?"
+
+
+--------------------------------------------------------------------------------
+2. DECISÕES DE ÂMBITO E ESCALA
+--------------------------------------------------------------------------------
+
+2.1 Número de Lojas
+  - O projeto implementa 3 lojas como prova de conceito: Lisboa, Porto e Braga.
+  - Na realidade, a Auto Escala teria cerca de 100 lojas em Portugal.
+  - A arquitetura suporta as 100 lojas reais porque o código lê dinamicamente
+    todos os ficheiros de uma pasta — o número de lojas não está hardcoded.
+  - Esta distinção é justificada no relatório: implementamos 3, escalamos para 100.
+
+2.2 Volume de Dados
+  - Assumindo 20 viaturas vendidas por semana por stand e 100 stands reais,  ## nao sao 20, mais como 5 por semana
+    o sistema teria ~2000 registos por mês (justificação Big Data no relatório).
+  - Na implementação real com 3 stands, o volume é menor mas a arquitetura
+    é idêntica à que suportaria os 100 stands.
+
+2.3 Período Temporal
+  - Dados históricos: 2022, 2023, 2024 (3 anos de histórico)
+  - Dados simulados "atuais" (Vendas em tempo real): 2025 e 2026 semana a semana    ## melhor mensal por causa das contagens
+  - O pipeline distingue entre carga histórica (Full Load) e dados novos (CDC)
+
+
+--------------------------------------------------------------------------------
+3. FONTES DE DADOS
+--------------------------------------------------------------------------------
+
+3.1 Fonte 1 — Inventário e Vendas (Dados Estruturados)
+  Tipo: CSV, uma fonte por stand
+  Ficheiros: stand_lisboa.csv, stand_porto.csv, stand_braga.csv
+  Geração: sintética, via script generate_inventory.py
+
+  Colunas por registo de viatura:
+    id_viatura          → identificador único da viatura no sistema
+    matricula           → Business Key — identifica univocamente a viatura
+    marca               → ex: Volkswagen, Toyota, BMW
+    modelo              → ex: Golf, Yaris, Série 3
+    ano_viatura         → ano de fabrico (nunca posterior à data de entrada)
+    combustivel         → Gasolina, Diesel, Híbrido, Elétrico
+    quilometragem       → km no momento de aquisição
+    preco_aquisicao     → preço pago pelo stand para comprar a viatura
+    data_entrada_stock  → data em que a viatura entrou no stand
+    preco_venda         → preço de venda ao cliente (NULL até ser vendida)
+    data_venda          → data de venda ao cliente (NULL enquanto em stock)
+    stand               → nome do stand de origem
+
+  Lógica de ciclo de vida da viatura:
+    - Quando uma viatura entra no stand: data_venda = NULL, preco_venda = NULL
+    - Quando é vendida: esses campos são preenchidos com os valores reais
+    - O CDC deteta esta atualização e propaga-a pelo pipeline
+
+  Sazonalidade implementada no gerador:
+    - Verão: mais descapotáveis, mais carros elétricos
+    - Inverno: mais SUVs, mais tração integral
+    - Distribuição realista de marcas e modelos para Portugal
+    - Carros nunca vendidos no próprio ano de fabrico
+
+3.2 Fonte 2 — Google Trends (Dados Semi-estruturados)
+  Tipo: JSON
+  Ficheiro: google_trends.json
+  Geração: via SerpAPI (https://serpapi.com/google-trends-api) se disponível,
+           ou sintética se a API não tiver dados suficientes
+
+  Conteúdo: interesse de pesquisa semanal (valores 0-100) por marca e modelo
+            em Portugal, por região (Norte, Centro, Sul, Lisboa, Porto)
+  Periodicidade: semanal — alinhada com a frequência do pipeline
+
+  Estrutura do JSON:
+    {
+      "termo": "Volkswagen Golf usado",
+      "regiao": "Porto",
+      "semana": "2024-03-11",
+      "valor_interesse": 72
+    }
+
+3.3 Fonte 3 — Reviews de Clientes (Dados Não Estruturados)
+  Tipo: CSV com campo de texto livre
+  Ficheiro: reviews.csv
+  Geração: sintética, via generate_reviews.py
+
+  Colunas:
+    id_review, data, marca, modelo, stand, rating (1-5), texto_opiniao
+
+  O texto_opiniao é texto livre não estruturado — genuinamente não estruturado,
+  o que cumpre o requisito do enunciado de ter dados dos três tipos.
+
+  Nota: Uma análise de sentimento simples pode ser aplicada na camada Gold
+  para extrair um índice de satisfação por modelo a partir deste texto.
+
+
+--------------------------------------------------------------------------------
+4. ARQUITETURA GERAL DO SISTEMA
+--------------------------------------------------------------------------------
+
+O sistema segue a Medallion Architecture (Bronze → Silver → Gold) com um
+Data Warehouse final em PostgreSQL para visualização no Power BI.
+
+Fluxo completo:
+
+  [FONTES DE DADOS]
+  stand_lisboa.csv  ──┐
+  stand_porto.csv   ──┤
+  stand_braga.csv   ──┤──► BRONZE ──► SILVER ──► GOLD ──► PostgreSQL ──► Power BI
+  google_trends.json──┤    (Delta)    (Delta)    (Delta)  (Star Schema)
+  reviews.csv       ──┘
+
+Tecnologias:
+  - Delta Lake (Python + deltalake library): Data Lake com as 3 camadas
+  - PostgreSQL em Docker: Data Warehouse final (Star Schema)
+  - pgAdmin em Docker: interface de administração da BD
+  - Power BI: visualização e dashboards
+  - Python + pandas: toda a lógica de pipeline
+  - docker-compose.yaml: igual ao da PL01, adaptado para este projeto
+
+Não são usados:
+  - Kafka (streaming — não justificável num sistema batch semanal)
+  - MQTT / Mosquitto (streaming — mesma razão)
+  - Triggers SQL (CDC com triggers exige BD transacional como fonte,
+    não ficheiros CSV)
+
+
+--------------------------------------------------------------------------------
+5. CAMADA BRONZE — INGESTÃO BRUTA
+--------------------------------------------------------------------------------
+
+Objetivo: preservar os dados exatamente como chegaram, com metadados de
+          rastreabilidade. Nada é transformado, nada é perdido.
+
+O que entra no Bronze:
+  - Ficheiros CSV de cada stand (inventário/vendas)
+  - JSON do Google Trends
+  - CSV de reviews
+
+O que é adicionado a cada registo (metadados):
+  - ingestion_timestamp: data/hora UTC em que o registo foi ingerido
+  - source_file: nome do ficheiro de origem
+  - source_stand: nome do stand (para os ficheiros de inventário)
+
+Tabelas Delta criadas:
+  data_lake/bronze/inventario_delta    ← todos os stands unidos
+  data_lake/bronze/trends_delta        ← dados Google Trends
+  data_lake/bronze/reviews_delta       ← opiniões de clientes
+
+Modo de escrita: APPEND — o Bronze nunca perde dados, acumula sempre.
+
+Organização de ficheiros de origem:
+  data/sources/
+    stands/
+      lisboa/
+        2022_01_lisboa.csv
+        2022_02_lisboa.csv
+        ...
+      porto/
+      braga/
+    trends/
+      google_trends.json
+    reviews/
+      reviews.csv
+
+Porquê o Bronze?
+  Se a limpeza na Silver produzir resultados errados, pode-se apagar a Silver
+  e reconstruí-la a partir do Bronze sem re-gerar dados ou ligar à API.
+  É a garantia de que os dados originais nunca são perdidos.
+
+
+--------------------------------------------------------------------------------
+6. CAMADA SILVER — LIMPEZA E QUALIDADE
+--------------------------------------------------------------------------------
+
+Objetivo: dados limpos, com tipos corretos, sem duplicados, prontos para análise.
+
+Transformações aplicadas ao inventário:
+  - Trim de strings e normalização de espaços
+  - Padronização de nulos textuais ("", "nan", "none") para NA real
+  - Cast de tipos: datas para datetime UTC, preços para float, km para int
+  - Normalização de marcas: dicionário de mapeamento
+      "VW" → "Volkswagen"
+      "mercedes-benz" → "Mercedes-Benz"
+      "MB" → "Mercedes-Benz"
+      (valores não reconhecidos vão para quarentena)
+  - Validação de regras de negócio:
+      * Quilometragem negativa → quarentena
+      * Preço de aquisição zero → quarentena
+      * Ano de fabrico posterior à data de entrada → quarentena
+      * SUV com menos de 4 lugares → quarentena
+  - Deduplicação por Business Key (matrícula):
+      Mantém o registo mais recente por matrícula.
+      Se chegou uma atualização com data_venda preenchida, substitui o NULL.
+
+Transformações aplicadas ao Google Trends:
+  - Normalização de datas para datetime UTC
+  - Cast de valor_interesse para int (0-100)
+  - Remoção de registos sem termo ou sem semana
+
+Transformações aplicadas às reviews:
+  - Limpeza de texto (trim, normalização de espaços)
+  - Remoção de reviews sem marca ou modelo identificável
+  - Normalização de rating para int
+
+Quarentena:
+  Registos inválidos não são apagados — são isolados numa tabela separada:
+  data_lake/silver/quarentena_delta
+  Isto permite auditar, corrigir e re-processar mais tarde.
+
+Modo de escrita: OVERWRITE — a Silver é sempre reconstruída a partir do Bronze.
+
+Tabelas Delta criadas:
+  data_lake/silver/inventario_delta
+  data_lake/silver/trends_delta
+  data_lake/silver/reviews_delta
+  data_lake/silver/quarentena_delta
+
+
+--------------------------------------------------------------------------------
+7. CAMADA GOLD — MÉTRICAS E ANÁLISE
+--------------------------------------------------------------------------------
+
+Objetivo: métricas pré-calculadas, prontas para carregar no PostgreSQL e
+          para alimentar os modelos de análise de tendências.
+
+Métricas calculadas:
+
+  gold_inventario:
+    - dias_em_stock = data_venda - data_entrada_stock
+    - status_viatura = "vendida" ou "em_stock" (data_venda NULL)
+    - margem = preco_venda - preco_aquisicao
+
+  gold_tendencias:
+    - taxa_crescimento_semanal: variação percentual do valor_interesse
+      face à semana anterior, por modelo
+    - media_movel_4_semanas: suavização da série para evitar ruído
+    - top_10_modelos_crescimento: ranking dos modelos com maior crescimento
+      nas últimas 4 semanas
+
+  gold_stock_performance:
+    - tempo_medio_stock_por_modelo: dias médios que um modelo fica parado
+    - modelos_acima_media: modelos com rotação mais lenta que a média
+    - modelos_abaixo_media: modelos com rotação mais rápida (vendem bem)
+
+  gold_oportunidades:
+    - MÉTRICA CENTRAL DO PROJETO
+    - Cruzamento de: tendência Google Trends crescente + rotação rápida no stand
+    - Resultado: lista de modelos que o sistema recomenda adquirir
+    - Lógica: se o interesse externo está a subir e historicamente o modelo
+      sai rápido quando há procura, é uma oportunidade de compra
+
+Modo de escrita: OVERWRITE — recalculado a cada execução do pipeline.
+
+Tabelas Delta criadas:
+  data_lake/gold/inventario_delta
+  data_lake/gold/tendencias_delta
+  data_lake/gold/stock_performance_delta
+  data_lake/gold/oportunidades_delta
+
+
+--------------------------------------------------------------------------------
+8. DATA WAREHOUSE — POSTGRESQL (STAR SCHEMA)
+--------------------------------------------------------------------------------
+
+Objetivo: estrutura relacional otimizada para o Power BI, com dimensões e factos.
+
+Tabelas Dimensão:
+  dim_veiculo:
+    id_veiculo, marca, modelo, ano_viatura, combustivel, segmento
+
+  dim_stand:
+    id_stand, nome_stand, cidade, regiao
+
+  dim_tempo:
+    id_tempo, data, semana, mes, trimestre, ano
+
+Tabelas de Factos:
+  fact_inventario:
+    id_viatura, id_veiculo (FK), id_stand (FK), id_tempo_entrada (FK),
+    id_tempo_venda (FK, NULL se não vendido), quilometragem,
+    preco_aquisicao, preco_venda, dias_em_stock, margem
+
+  fact_tendencias:
+    id_tendencia, id_veiculo (FK), id_tempo (FK), regiao,
+    valor_interesse, taxa_crescimento_semanal, media_movel_4_semanas
+
+Infraestrutura:
+  docker-compose.yaml com PostgreSQL + pgAdmin
+  Acesso Power BI via conector PostgreSQL nativo
+
+
+--------------------------------------------------------------------------------
+9. CDC — CHANGE DATA CAPTURE COM WATERMARK
+--------------------------------------------------------------------------------
+
+Porquê watermark e não triggers:
+  CDC com triggers faz sentido quando a fonte é uma base de dados a mudar
+  em tempo real. As fontes deste projeto são ficheiros CSV — triggers não se
+  aplicam. O watermark é o método correto e tecnicamente justificável.
+
+Como funciona:
+  Ficheiro watermark.json guarda a última data processada por fonte:
+  {
+    "stand_lisboa": "2024-12-29",
+    "stand_porto": "2024-12-29",
+    "stand_braga": "2024-12-29",
+    "google_trends": "2024-12-29"
+  }
+
+  A cada execução do pipeline:
+    1. Lê o watermark
+    2. Só processa registos com data > ultima_data_processada
+    3. No final, atualiza o watermark com a data da semana processada
+
+Dois modos de carga distintos:
+  Full Load (histórico 2022-2024):
+    Copia tudo de uma vez. Sem verificação de watermark.
+    Inicializa o watermark com "2021-12-31" no final.
+
+  Incremental Load com CDC (2025 em diante):
+    Só processa o que é novo desde o último domingo.
+    Atualiza o watermark semanalmente.
+
+Esta distinção é academicamente importante: demonstra que se sabe quando
+usar cada abordagem, não se aplica CDC onde ele não é necessário.
+
+Tratamento de atualizações de viaturas:
+  Quando uma viatura já existente no sistema é vendida (data_venda preenchida),
+  o CDC deteta o registo atualizado porque a sua data de modificação é mais
+  recente que o watermark. A Silver atualiza o registo pela Business Key
+  (matrícula), substituindo o NULL pelo valor real de venda.
+
+
+--------------------------------------------------------------------------------
+10. SCRIPTS DO PROJETO — INVENTÁRIO COMPLETO
+--------------------------------------------------------------------------------
+
+Scripts de geração de dados (correm uma vez, antes do pipeline):
+
+  generate_inventory.py
+    Gera os ficheiros CSV de inventário por stand.
+    Parâmetros: data_inicio, data_fim, stands, n_viaturas_semana.
+    Produz: ficheiros CSV organizados por stand e semana.
+    Inclui sazonalidade: mais SUVs no inverno, mais elétricos no verão.
+    Garante: ano_viatura nunca posterior à data_entrada_stock.
+
+  generate_trends.py
+    Extrai ou gera dados do Google Trends.
+    Se SerpAPI disponível: extrai dados reais para Portugal por região.
+    Se não disponível: gera séries sintéticas com tendências realistas,
+    incluindo picos simulados para modelos elétricos em 2024-2025.
+    Produz: google_trends.json
+
+  generate_reviews.py
+    Gera opiniões sintéticas de clientes.
+    Texto livre escolhido aleatoriamente de lista de frases por rating.
+    Produz: reviews.csv
+
+Scripts do pipeline ETL:
+
+  bronze_pipeline.py
+    Lê todos os ficheiros de origem.
+    Adiciona metadados (ingestion_timestamp, source_file, source_stand).
+    Escreve em Delta modo APPEND.
+
+  silver_pipeline.py
+    Lê tabelas Bronze.
+    Aplica todas as transformações de qualidade descritas na secção 6.
+    Escreve em Delta modo OVERWRITE.
+    Registos inválidos vão para quarentena.
+
+  gold_pipeline.py
+    Lê tabelas Silver.
+    Calcula todas as métricas descritas na secção 7.
+    Escreve em Delta modo OVERWRITE.
+
+  cdc_pipeline.py
+    Lê e atualiza o watermark.json.
+    Filtra os dados a processar na execução atual.
+    Chamado pelo main.py antes de cada execução incremental.
+
+  load_to_postgres.py
+    Lê tabelas Gold.
+    Constrói o Star Schema no PostgreSQL.
+    Carrega dimensões e factos.
+
+  main.py
+    Orquestra toda a execução.
+    Aceita parâmetro --data_limite para controlar até onde simular.
+    Implementa os dois modos: Full Load e Incremental com CDC.
+
+
+--------------------------------------------------------------------------------
+11. COMO CORRE O PROJETO DO INÍCIO AO FIM
+--------------------------------------------------------------------------------
+
+Passo 1 — Preparação do ambiente:
+  docker-compose up -d
+  (inicia PostgreSQL e pgAdmin)
+
+Passo 2 — Execução completa:
+  python main.py --data_limite 2026-04-20
+
+O main.py executa internamente:
+
+  FASE 1 — Geração de todos os dados:
+    generate_inventory.py  → CSVs históricos 2022-2024 + semanais 2025-2026
+    generate_trends.py     → google_trends.json
+    generate_reviews.py    → reviews.csv
+    Inicializa watermark.json com "2021-12-31"
+
+  FASE 2 — Full Load histórico (2022-2024):
+    bronze_pipeline.py  → ingere todos os dados históricos de uma vez
+    silver_pipeline.py  → limpa e normaliza tudo
+    gold_pipeline.py    → calcula métricas históricas
+    load_to_postgres.py → carrega Star Schema inicial
+    Atualiza watermark para "2024-12-29"
+
+  FASE 3 — Loop semanal CDC (Jan 2025 → data_limite):
+    Para cada semana:
+      cdc_pipeline.py     → verifica watermark, filtra dados novos
+      bronze_pipeline.py  → append dos dados dessa semana
+      silver_pipeline.py  → overwrite com dados atualizados
+      gold_pipeline.py    → recalcula métricas
+      load_to_postgres.py → atualiza PostgreSQL
+      Atualiza watermark para esta semana
+      Aguarda X segundos (configurável, ex: 1 segundo por semana)
+
+Passo 3 — Visualização:
+  Abrir Power BI, ligar ao PostgreSQL local, abrir dashboards.
+
+
+--------------------------------------------------------------------------------
+12. DASHBOARDS — POWER BI
+--------------------------------------------------------------------------------
+
+Dashboard 1 — Gestor de Compras:
+  Pergunta que responde: "O que devo comprar esta semana?"
+  Conteúdo:
+    - Top 10 modelos com maior crescimento de interesse (Google Trends)
+    - Lista de oportunidades: tendência crescente + rotação rápida histórica
+    - Evolução semanal do interesse por modelo (gráfico de linhas)
+    - Filtros: marca, combustível, região
+
+Dashboard 2 — Gestor de Stock:
+  Pergunta que responde: "O que está parado e precisa de atenção?"
+  Conteúdo:
+    - Viaturas atualmente em stock com dias_em_stock acima da média
+    - Tempo médio de stock por modelo e por stand
+    - Alertas: viaturas com mais de X dias sem vender
+    - Filtros: stand, marca, modelo
+
+Dashboard 3 — Direção:
+  Pergunta que responde: "Como está o negócio e onde está o mercado?"
+  Conteúdo:
+    - KPIs gerais: total vendas, margem média, rotação média
+    - Tendências de mercado por região em Portugal
+    - Comparação de performance entre stands
+    - Evolução temporal de vendas e margens
+
+
+--------------------------------------------------------------------------------
+13. MODELO DE ANÁLISE DE TENDÊNCIAS — FASE 5
+--------------------------------------------------------------------------------
+
+Técnica: ARIMA (AutoRegressive Integrated Moving Average)
+  Justificação: método consolidado para séries temporais univariadas,
+  adequado ao volume de dados disponível e justificável academicamente.
+  Alternativa mais complexa se houver tempo: Prophet (Facebook).
+
+O modelo é aplicado sobre:
+  - As séries temporais do Google Trends por modelo
+  - As séries de vendas semanais por modelo
+
+Objetivo: prever o interesse nas próximas 4 semanas para os modelos
+          mais relevantes.
+
+Métricas de validação:
+  - MAE (Mean Absolute Error)
+  - RMSE (Root Mean Square Error)
+  - Análise crítica: onde o modelo acerta, onde falha e porquê
+
+Esta componente corresponde à Fase 5 do relatório e é independente
+do pipeline — usa os dados da camada Gold já calculados.
+
+
+--------------------------------------------------------------------------------
+14. ESTRUTURA DE PASTAS DO PROJETO
+--------------------------------------------------------------------------------
+
+projeto_auto_escala/
+  data/
+    sources/
+      stands/
+        lisboa/
+        porto/
+        braga/
+      trends/
+        google_trends.json
+      reviews/
+        reviews.csv
+    watermark.json
+  data_lake/
+    bronze/
+      inventario_delta/
+      trends_delta/
+      reviews_delta/
+    silver/
+      inventario_delta/
+      trends_delta/
+      reviews_delta/
+      quarentena_delta/
+    gold/
+      inventario_delta/
+      tendencias_delta/
+      stock_performance_delta/
+      oportunidades_delta/
+  scripts/
+    generate_inventory.py
+    generate_trends.py
+    generate_reviews.py
+    bronze_pipeline.py
+    silver_pipeline.py
+    gold_pipeline.py
+    cdc_pipeline.py
+    load_to_postgres.py
+    main.py
+  docker-compose.yaml
+  requirements.txt
+  README.md
+
+
+--------------------------------------------------------------------------------
+15. JUSTIFICAÇÃO BIG DATA
+--------------------------------------------------------------------------------
+
+O projeto justifica-se como Big Data nas seguintes dimensões:
+
+Volume:
+  Com 100 stands reais e 20 viaturas/semana por stand, o sistema processaria
+  ~96.000 registos de inventário por ano, mais séries temporais semanais para
+  cada modelo em cada região. A arquitetura Delta Lake suporta este volume.
+
+Variedade:
+  Três tipos de dados heterogéneos:
+    - Estruturados: CSVs de inventário com schema definido
+    - Semi-estruturados: JSON do Google Trends com schema flexível
+    - Não estruturados: texto livre das reviews de clientes
+
+Velocidade:
+  Pipeline batch semanal com CDC incremental — processa apenas o delta
+  de cada semana, não re-processa tudo. Isto é o padrão industrial para
+  sistemas de dados em larga escala com frequência de atualização regular.
+
+Veracidade:
+  A camada de quarentena e as regras de validação na Silver garantem que
+  os dados que chegam à análise têm qualidade verificada e auditável.
+
+
+================================================================================
+  FIM DO DOCUMENTO
+  Elaborado com base nas decisões tomadas durante a fase de planeamento
+  do projeto CDGE — Auto Escala, Abril 2026
+================================================================================

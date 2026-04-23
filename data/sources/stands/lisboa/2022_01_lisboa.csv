@@ -1,0 +1,18 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000001,39-QT-13,BMW,X1,SUV,5,2014,Híbrido a Gasolina,110000,10500,2022-01-08,11200,2022-01-27,Lisboa
+V000002,29-GY-53,Mercedes,Classe A,Hatchback,5,2019,Híbrido a Gasolina,34000,16600,2022-01-14,18300,2022-05-14,Lisboa
+V000003,47-UT-56,Seat,Arona,SUV,5,2019,Gasolina,41000,11500,2022-01-12,12300,2022-04-30,Lisboa
+V000004,56-FL-55,Mercedes,Classe A,Hatchback,5,2018,Gasóleo,66000,12800,2022-01-08,14500,2022-05-16,Lisboa
+V000005,91-WR-38,Peugeot,3008,SUV,5,2020,Híbrido a Gasolina,42000,17600,2022-01-21,19200,2022-05-10,Lisboa
+V000006,73-MU-68,Nissan,Leaf,Elétrico,5,2014,100% Elétrico,90000,7500,2022-01-25,8100,2022-04-27,Lisboa
+V000007,21-YB-24,BMW,X1,SUV,5,2018,Híbrido a Gasolina,67000,16000,2022-01-18,17900,2022-03-06,Lisboa
+V000008,11-VX-24,Volkswagen,Tiguan,SUV,5,2019,Híbrido a Gasolina,59000,16500,2022-01-20,,,Lisboa
+V000009,32-QD-90,Seat,Ibiza,Citadino,5,2016,Gasolina,81000,4800,2022-01-21,5600,2022-04-10,Lisboa
+V000010,56-ZJ-40,Peugeot,208,Citadino,5,2019,Gasóleo,54000,10100,2022-01-05,10700,2022-05-22,Lisboa
+V000011,31-IQ-87,Hyundai,Kona,SUV,5,2018,Híbrido a Gasolina,71000,13600,2022-01-03,16000,2022-05-16,Lisboa
+V000012,38-CK-12,Volkswagen,Tiguan,SUV,5,2018,Gasolina,73000,13400,2022-01-24,14400,2022-05-31,Lisboa
+V000013,26-XS-83,Peugeot,3008,SUV,5,2014,Gasóleo,118000,8000,2022-01-03,8700,2022-05-19,Lisboa
+V000014,92-DB-61,Tesla,Model 3,Elétrico,5,2016,100% Elétrico,85000,16100,2022-01-26,18400,2022-02-20,Lisboa
+V000015,19-OZ-80,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,27000,28400,2022-01-04,33100,2022-03-20,Lisboa
+V000016,17-FM-10,Peugeot,208,Citadino,5,2021,Gasóleo,23000,12400,2022-01-01,14400,2022-03-08,Lisboa
+V000017,47-GB-84,Peugeot,3008,SUV,5,2018,Híbrido a Gasolina,86000,13000,2022-01-15,14000,2022-05-31,Lisboa

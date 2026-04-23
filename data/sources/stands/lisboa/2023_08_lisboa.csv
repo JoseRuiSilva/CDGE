@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000273,99-XB-30,Volkswagen,Tiguan,SUV,5,2018,Gasolina,86000,12200,2023-08-15,13100,2023-10-08,Lisboa
+V000274,26-PP-24,Nissan,Leaf,Elétrico,5,2017,100% Elétrico,78000,8900,2023-08-16,10400,2023-09-04,Lisboa
+V000275,98-WT-22,Citroën,C3,Citadino,5,2018,Gasolina,94000,5500,2023-08-21,6200,2023-11-27,Lisboa
+V000276,88-BA-92,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,37000,26400,2023-08-16,,,Lisboa
+V000277,58-MH-20,Peugeot,208,Citadino,5,2019,Gasóleo,50000,8800,2023-08-16,9900,2023-10-24,Lisboa
+V000278,62-BR-80,renault,Zoe,Elétrico,5,2022,100% Elétrico,19000,16300,2023-08-15,17500,2023-08-31,Lisboa
+V000279,56-BH-68,Renault,Zoe,Elétrico,5,2018,100% Elétrico,70000,9900,2023-08-31,11600,2024-01-06,Lisboa
+V000280,55-UZ-47,Renault,Zoe,Elétrico,5,2019,100% Elétrico,63000,11000,2023-08-20,11700,2023-10-27,Lisboa
+V000281,34-DM-37,Seat,Ibiza,Citadino,5,2019,Gasolina,87000,6300,2023-08-29,7100,2023-11-14,Lisboa
+V000282,85-QE-73,Renault,Zoe,elétrico,5,2019,100% Elétrico,53000,12100,2023-08-23,13500,2023-12-28,Lisboa
+V000283,94-TT-51,BMW,X1,SUV,5,2017,Híbrido a Gasolina,79000,13300,2023-08-27,14300,2023-10-10,Lisboa
+V000284,87-WX-75,Seat,Ibiza,Citadino,5,2019,GPL,79000,6100,2023-08-30,6600,2023-10-15,Lisboa
+V000285,96-EW-93,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,46000,27000,2023-08-28,30800,2023-11-22,Lisboa

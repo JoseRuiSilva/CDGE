@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000826,14-AY-77,Nissan,Leaf,Elétrico,5,2020,100% Elétrico,69000,10900,2024-03-08,12800,2024-05-22,Porto
+V000827,58-UM-26,Renault,Clio,Citadino,5,2020,Gasóleo,67000,7200,2024-03-06,8300,2024-05-26,Porto
+V000828,79-TE-22,Nissan,Leaf,Elétrico,5,2020,100% Elétrico,75000,11100,2024-03-28,12800,2024-04-12,Porto
+V000829,35-DI-93,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,63000,20600,2024-03-07,22500,2024-06-04,Porto
+V000830,73-XM-57,Renault,Clio,Citadino,5,2019,Gasóleo,73000,6500,2024-03-08,7200,2024-05-21,Porto
+V000831,90-CD-81,Audi,A3,Sedan,5,2022,Gasolina,39000,16100,2024-03-19,17700,2024-06-18,Porto
+V000832,73-IN-49,Nissan,Leaf,Elétrico,5,2016,100% Elétrico,90000,7900,2024-03-16,8400,2024-05-26,Porto
+V000833,72-RP-50,Renault,Zoe,Elétrico,5,2021,100% Elétrico,47000,13500,2024-03-02,15500,2024-05-06,Porto
+V000834,11-FQ-25,Nissan,Qashqai,SUV,5,2017,Gasóleo,100000,9300,2024-03-16,10300,2024-04-16,Porto
+V000835,47-DN-47,Seat,Ibiza,Citadino,5,2018,GPL,101000,4900,2024-03-02,5400,2024-06-29,Porto
+V000836,36-ZT-57,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,90000,9000,2024-03-09,10100,2024-06-03,Porto
+V000837,63-FE-70,Nissan,Qashqai,SUV,5,2019,Gasóleo,76000,10200,2024-03-30,10800,2024-08-10,Porto
+V000838,18-LU-81,Kia,Niro,SUV,5,2022,100% Elétrico,40000,19500,2024-03-07,22100,2024-07-16,Porto

@@ -1,0 +1,38 @@
+erDiagram
+    STAND ||--o{ VIATURA : "possui no inventário"
+    STAND ||--o{ REVIEW : "recebe"
+    VIATURA }o--o| REVIEW : "pode ser alvo de"
+
+    STAND {
+        string nome_stand PK "Ex: stand_lisboa"
+    }
+
+    VIATURA {
+        string id_viatura PK "Identificador único"
+        string matricula UK "Business Key"
+        string marca "Ex: Volkswagen"
+        string modelo "Ex: Golf"
+        int ano_viatura "Ano de fabrico"
+        string combustivel "Ex: Gasolina, Elétrico"
+        int quilometragem "Km à aquisição"
+        float preco_aquisicao "Preço pago pelo stand"
+        date data_entrada_stock "Data de entrada"
+        float preco_venda "Preço de venda ao cliente (NULL se em stock)"
+        date data_venda "Data de venda (NULL se em stock)"
+    }
+
+    TENDENCIA_GOOGLE {
+        string termo PK "Ex: Volkswagen Golf usado"
+        string regiao PK "Ex: Porto"
+        date semana PK "Semana da pesquisa"
+        int valor_interesse "Valor 0-100"
+    }
+
+    REVIEW {
+        string id_review PK "Identificador único"
+        date data "Data da review"
+        string marca "Marca mencionada"
+        string modelo "Modelo mencionado"
+        int rating "Escala de 1-5"
+        string texto_opiniao "Texto livre não estruturado"
+    }

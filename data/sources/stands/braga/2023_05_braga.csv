@@ -1,0 +1,9 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001109,98-RG-71,Fiat,500,Citadino,4,2018,Gasolina,70000,6900,2023-05-01,7400,2023-08-08,Braga
+V001110,34-TU-71,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,25000,29900,2023-05-12,32500,2023-09-04,Braga
+V001111,35-BB-67,Audi,A3,Sedan,5,2020,Gasóleo,63000,14100,2023-05-24,16000,2023-08-26,Braga
+V001112,20-ED-86,Peugeot,208,Citadino,5,2020,Gasolina,34000,10700,2023-05-22,,,Braga
+V001113,91-KH-49,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,30000,31700,2023-05-19,36600,2023-06-08,Braga
+V001114,62-CQ-56,Seat,Ibiza,Citadino,5,2020,Gasolina,52000,7700,2023-05-04,8400,2023-06-24,Braga
+V001115,77-TT-22,Seat,Arona,SUV,5,2018,Gasolina,57000,9000,2023-05-10,,,Braga
+V001116,49-YR-79,BMW,X1,SUV,5,2019,Gasóleo,61000,15400,2023-05-11,16400,2023-07-21,Braga

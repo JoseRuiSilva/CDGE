@@ -1,0 +1,10 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001147,65-OA-15,Citroën,C3,Citadino,5,2016,Gasóleo,110000,4800,2023-10-03,5100,2024-02-12,Braga
+V001148,82-DH-62,Mercedes,GLA,SUV,5,2019,Gasolina,46000,16800,2023-10-08,18600,2023-11-27,Braga
+V001149,80-WB-90,Seat,Arona,SUV,5,2020,Gasolina,37000,11100,2023-10-08,12700,2024-01-24,Braga
+V001150,17-IZ-16,Renault,Clio,Citadino,5,2017,Gasolina,92000,5600,2023-10-20,6000,2023-12-18,Braga
+V001151,92-FR-70,Nissan,Leaf,Elétrico,5,2017,100% Elétrico,90000,9200,2023-10-09,10800,2023-12-26,Braga
+V001152,61-TV-47,Hyundai,Kona,SUV,5,2021,Gasolina,32000,16700,2023-10-13,18000,2023-11-10,Braga
+V001153,77-NG-23,Fiat,500,Citadino,4,2020,Híbrido a Gasolina,29000,9600,2023-10-22,10600,2023-12-06,Braga
+V001154,59-FL-57,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,53000,23100,2023-10-03,,,Braga
+V001155,12-VC-70,Nissan,Leaf,Elétrico,5,2020,100% Elétrico,54000,13200,2023-10-02,14500,2023-11-30,Braga

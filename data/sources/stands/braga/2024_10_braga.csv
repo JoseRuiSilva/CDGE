@@ -1,0 +1,11 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V001267,59-RH-43,Peugeot,3008,SUV,5,2018,Híbrido a Gasolina,102000,10100,2024-10-29,,,Braga
+V001268,55-SY-41,Seat,Ibiza,Citadino,5,2018,Gasolina,66000,5500,2024-10-17,5900,2024-12-04,Braga
+V001269,39-TB-65,Renault,Clio,Citadino,5,2022,Gasóleo,39000,9000,2024-10-05,,,Braga
+V001270,18-CJ-19,Nissan,Qashqai,SUV,5,2017,Gasóleo,93000,8800,2024-10-25,,,Braga
+V001271,23-HG-70,Renault,Zoe,Elétrico,5,2022,100% Elétrico,43000,14500,2024-10-19,16600,2024-12-22,Braga
+V001272,56-IY-48,Hyundai,Kona,SUV,5,2023,Gasolina,30000,18800,2024-10-08,22000,2024-10-25,Braga
+V001273,61-CP-71,Nissan,Qashqai,SUV,5,2019,Gasóleo,82000,10800,2024-10-14,,,Braga
+V001274,10-MO-80,Hyundai,Kona,SUV,5,2022,100% Elétrico,43000,19500,2024-10-17,21900,2024-11-08,Braga
+V001275,89-FM-90,Seat,Arona,SUV,5,2021,Gasolina,44000,11400,2024-10-15,,,Braga
+V001276,49-QM-82,Nissan,Qashqai,SUV,5,2017,Gasóleo,113000,9100,2024-10-22,,,Braga

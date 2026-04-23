@@ -1,0 +1,13 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000629,72-AD-18,Renault,Zoe,Elétrico,5,2020,100% Elétrico,42000,14000,2022-11-09,,,Porto
+V000630,74-DO-82,Seat,Arona,SUV,5,2019,Gasolina,33000,11400,2022-11-14,12700,2023-01-15,Porto
+V000631,23-UF-20,Volkswagen,Tiguan,SUV,5,2018,Gasóleo,77000,13200,2022-11-06,,,Porto
+V000632,44-YA-95,Seat,Arona,SUV,5,2021,Gasolina,19000,14400,2022-11-09,15300,2022-12-16,Porto
+V000633,53-LV-53,Kia,Niro,SUV,5,2021,100% Elétrico,22000,24500,2022-11-17,27700,2023-02-23,Porto
+V000634,99-MX-27,Renault,Zoe,Elétrico,5,2018,100% Elétrico,44000,12600,2022-11-12,14000,2022-11-24,Porto
+V000635,10-UK-12,BMW,X1,SUV,5,2019,Gasolina,63000,17000,2022-11-23,19400,2023-03-20,Porto
+V000636,70-VW-22,Hyundai,Kona,SUV,5,2019,Híbrido a Gasolina,51000,15700,2022-11-24,17300,2022-12-26,Porto
+V000637,96-RO-31,Nissan,Qashqai,SUV,5,2015,Gasolina,123000,8600,2022-11-05,9400,2022-12-09,Porto
+V000638,51-MY-45,Kia,Niro,SUV,5,2016,Híbrido a Gasolina,96000,11200,2022-11-18,12100,2022-12-07,Porto
+V000639,83-YT-18,Peugeot,3008,SUV,5,2020,Gasolina,51000,15500,2022-11-29,18100,2023-03-06,Porto
+V000640,24-JC-24,Seat,Arona,SUV,5,2018,Gasolina,70000,9500,2022-11-23,10300,2023-02-02,Porto

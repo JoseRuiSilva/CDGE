@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000328,44-FX-97,Nissan,Qashqai,SUV,5,2015,Gasóleo,108000,8000,2023-12-24,,,Lisboa
+V000329,23-DC-96,Volkswagen,Tiguan,SUV,5,2019,Híbrido a Gasolina,54000,14900,2023-12-08,16100,2024-03-20,Lisboa
+V000330,75-IM-38,Renault,Clio,Citadino,5,2017,Gasolina,105000,5300,2023-12-28,5900,2024-03-19,Lisboa
+V000331,32-OD-99,BMW,X1,SUV,5,2018,Gasolina,63000,13800,2023-12-14,,,Lisboa
+V000332,33-RI-40,Nissan,Qashqai,SUV,5,2019,Gasolina,54000,12200,2023-12-22,,,Lisboa
+V000333,33-SE-83,Kia,Niro,SUV,5,2019,100% Elétrico,68000,15400,2023-12-06,16800,2024-03-29,Lisboa
+V000334,11-FN-73,Renault,Zoe,Elétrico,5,2020,100% Elétrico,47000,13500,2023-12-24,15100,2024-02-12,Lisboa
+V000335,30-BG-42,Hyundai,Kona,SUV,5,2020,Híbrido a Gasolina,41000,16600,2023-12-18,17800,2024-04-09,Lisboa
+V000336,54-VT-35,Peugeot,208,Citadino,5,2020,Gasóleo,55000,10000,2023-12-11,11100,2023-12-28,Lisboa
+V000337,46-OU-28,Peugeot,208,Citadino,5,2020,Gasóleo,56000,9500,2023-12-25,10500,2024-01-26,Lisboa
+V000338,47-WI-87,Peugeot,208,Citadino,5,2018,100% Elétrico,71000,8200,2023-12-14,9000,2024-03-15,Lisboa
+V000339,40-VI-99,Peugeot,3008,SUV,5,2019,Gasolina,67000,11900,2023-12-28,12800,2024-01-14,Lisboa
+V000340,89-EC-93,Volkswagen,Tiguan,SUV,5,2020,Gasolina,59000,14400,2023-12-04,15400,2024-01-06,Lisboa

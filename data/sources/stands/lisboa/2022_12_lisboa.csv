@@ -1,0 +1,15 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000158,92-VM-77,Mercedes,GLA,SUV,5,2020,Gasóleo,42000,21100,2022-12-29,,,Lisboa
+V000159,48-WE-69,Seat,Arona,SUV,5,2019,Gasolina,56000,10400,2022-12-05,,,Lisboa
+V000160,21-RX-34,Citroën,C3,Citadino,5,2013,Gasóleo,105000,3800,2022-12-18,4400,2023-04-24,Lisboa
+V000161,52-JA-37,Seat,Arona,SUV,5,2015,Gasolina,82000,6900,2022-12-20,7500,2023-05-03,Lisboa
+V000162,46-MO-78,Kia,Niro,SUV,5,2018,100% Elétrico,72000,15000,2022-12-25,16900,2023-03-08,Lisboa
+V000163,36-LK-62,Nissan,Qashqai,SUV,5,2016,Gasóleo,111000,9600,2022-12-29,,,Lisboa
+V000164,58-SH-73,Hyundai,Kona,SUV,5,2019,Híbrido a Gasolina,56000,15800,2022-12-01,17400,2023-02-01,Lisboa
+V000165,79-PF-79,Kia,Niro,SUV,5,2018,100% Elétrico,67000,14900,2022-12-25,16100,2023-04-06,Lisboa
+V000166,29-AG-74,Kia,Niro,SUV,5,2021,Híbrido a Gasolina,16000,22500,2022-12-27,24000,2023-03-08,Lisboa
+V000167,77-XI-78,Mercedes,GLA,SUV,5,2017,Híbrido a Gasolina,80000,13800,2022-12-30,14600,2023-04-26,Lisboa
+V000168,89-QI-55,Mercedes,GLA,SUV,5,2018,Gasóleo,63000,15500,2022-12-22,16900,2023-02-10,Lisboa
+V000169,93-YB-21,Seat,Arona,SUV,5,2018,Gasolina,62000,9100,2022-12-12,10400,2023-01-13,Lisboa
+V000170,92-ZK-82,Seat,Arona,SUV,5,2021,Gasolina,18000,13700,2022-12-16,,,Lisboa
+V000171,45-RS-94,Kia,Niro,SUV,5,2021,Híbrido a Gasolina,33000,20400,2022-12-30,23300,2023-01-30,Lisboa

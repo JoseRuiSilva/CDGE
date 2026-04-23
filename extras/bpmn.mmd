@@ -1,0 +1,49 @@
+flowchart LR
+    %% Definição de Estilos
+    classDef bronze fill:#cd7f32,stroke:#333,stroke-width:2px;
+    classDef silver fill:#c0c0c0,stroke:#333,stroke-width:2px;
+    classDef gold fill:#ffd700,stroke:#333,stroke-width:2px;
+    classDef db fill:#3366ff,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef bi fill:#f2c811,stroke:#333,stroke-width:2px;
+
+    %% Fontes de Dados
+    subgraph Fontes ["Fontes de Dados Originais"]
+        F1(CSVs Stands\nInventário)
+        F2(JSON\nGoogle Trends)
+        F3(CSV Reviews)
+    end
+
+    %% Ingestão e Watermark
+    CDC{CDC / Watermark} -.->|Lê última data\nprocessada| F1 & F2 & F3
+
+    %% Delta Lake / Medallion Architecture
+    subgraph DeltaLake ["Data Lake (Python + Delta Lake)"]
+        
+        B[(Bronze Layer\nModo: APPEND)]:::bronze
+        
+        Q([Quarentena\nRegistos Inválidos]):::silver
+        S[(Silver Layer\nModo: OVERWRITE)]:::silver
+        
+        G[(Gold Layer\nModo: OVERWRITE)]:::gold
+        
+        %% Processamentos
+        B -- "silver_pipeline.py\nLimpeza & Deduplicação" --> S
+        S -.->|"Regras de Negócio\nFalhadas"| Q
+        S -- "gold_pipeline.py\nCálculo de Métricas" --> G
+    end
+
+    %% Ingestão
+    Fontes -- "bronze_pipeline.py\n(Ingestão Bruta)" --> B
+
+    %% DW e Visualização
+    subgraph DataWarehouse ["PostgreSQL (Docker)"]
+        DW[(Star Schema\nData Warehouse)]:::db
+    end
+
+    subgraph Analytics ["Visualização"]
+        PBI[Power BI\nDashboards]:::bi
+    end
+
+    %% Entregas Finais
+    G -- "load_to_postgres.py" --> DW
+    DW --> PBI

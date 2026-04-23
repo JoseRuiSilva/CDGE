@@ -1,0 +1,14 @@
+id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
+V000742,99-OP-92,Tesla,Model 3,Elétrico,5,2021,100% Elétrico,24000,29200,2023-08-09,32300,2023-09-02,Porto
+V000743,98-XN-38,Volkswagen,Tiguan,SUV,5,2014,Gasolina,125000,8100,2023-08-20,,,Porto
+V000744,48-CI-52,Nissan,Qashqai,SUV,5,2016,Híbrido a Gasolina,128000,9700,2023-08-12,10400,2023-09-04,Porto
+V000745,84-NU-67,Renault,Zoe,Elétrico,5,2020,100% Elétrico,44000,13200,2023-08-13,15400,2023-11-14,Porto
+V000746,55-RH-94,Peugeot,208,Citadino,5,2019,Gasolina,66000,8100,2023-08-16,9300,2023-11-11,Porto
+V000747,23-KG-85,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,52000,10400,2023-08-23,11300,2023-12-11,Porto
+V000748,56-MO-89,Peugeot,208,Citadino,5,2020,Gasóleo,43000,10500,2023-08-31,11400,2023-10-15,Porto
+V000749,92-DE-69,Renault,Zoe,Elétrico,5,2022,100% Elétrico,30000,16000,2023-08-07,,,Porto
+V000750,25-RC-55,Tesla,Model 3,Elétrico,5,2022,100% Elétrico,18000,30500,2023-08-08,33600,2023-12-13,Porto
+V000751,34-MF-86,Peugeot,3008,SUV,5,2017,Gasolina,72000,9400,2023-08-17,10200,2023-12-15,Porto
+V000752,40-CR-22,Mercedes,Classe A,Hatchback,5,2021,Gasolina,36000,15500,2023-08-04,17500,2023-08-25,Porto
+V000753,44-PG-31,Nissan,Leaf,Elétrico,5,2018,100% Elétrico,53000,11300,2023-08-23,,,Porto
+V000754,98-HF-50,Renault,Clio,Citadino,5,2019,Gasolina,49000,7300,2023-08-20,8400,2024-01-01,Porto
