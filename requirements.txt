@@ -1,3 +1,18 @@
-pandas
-deltalake
-pyarrow
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto Escala — Dependências Python
+# Gerar ficheiro bloqueado: pip freeze > requirements.lock
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Pipeline e Delta Lake
+pandas>=2.2
+deltalake>=0.17
+
+# Base de dados
+psycopg[binary]>=3.1
+sqlalchemy>=2.0
+
+# Análise preditiva (Fase 5)
+prophet>=1.1
+
+# Utilitários
+python-dotenv>=1.0

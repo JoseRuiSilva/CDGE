@@ -1,0 +1,80 @@
+name: auto_escala
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto Escala — Docker Compose
+# CDGE | Universidade do Minho | 2025-2026
+#
+# Pré-requisitos:
+#   - Ficheiro .env na mesma pasta (ver .env.example)
+#   - docker compose up -d
+# 
+# Server:
+#   - Name: auto_escala
+#   - Host name: postgres
+#   - Port: 5432
+#   - Username: ae_user
+#   - Password: ae_pass_2026
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Base de dados ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: auto_escala_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-auto_escala}
+      POSTGRES_USER:     ${POSTGRES_USER:-ae_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ae_pass_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ae_user} -d ${POSTGRES_DB:-auto_escala}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # ── Administração web ────────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: auto_escala_pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@autoescala.pt}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin2026}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5052:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ── Pipeline Python ──────────────────────────────────────────────────────
+  # Descomentar quando main.py estiver implementado e o Dockerfile criado.
+  #
+  # app:
+  #   build:
+  #     context: ..
+  #     dockerfile: Dockerfile
+  #   container_name: auto_escala_app
+  #   restart: "no"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ae_user}:${POSTGRES_PASSWORD:-ae_pass_2026}@postgres:5432/${POSTGRES_DB:-auto_escala}
+  #     PYTHONPATH: /app
+  #   command: ["python", "scripts/main.py"]
+  #   volumes:
+  #     - ../data:/app/data
+
+volumes:
+  postgres_data:
+  pgadmin_data:
