@@ -63,3 +63,6 @@ relatorio/*.pdf
 relatorio/*.aux
 relatorio/*.out
 relatorio/*.toc
+
+# -- Ficheiros adicionais para uso próprio -----------------------------------
+extras/
