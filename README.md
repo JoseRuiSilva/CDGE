@@ -52,38 +52,29 @@ projeto_auto_escala/
 ### 1 — Clonar e configurar o ambiente
 
 ```bash
-git clone https://github.com/<utilizador>/projeto_auto_escala.git
+git clone https://github.com/JoseRuiSilva/CDGE.git
 cd projeto_auto_escala
 
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2 — Configurar variáveis de ambiente
-
-```bash
-cp docker/.env.example docker/.env
-# Editar docker/.env se necessário (credenciais PostgreSQL)
-```
-
-### 3 — Arrancar a base de dados
+### 2 — Arrancar a base de dados
 
 ```bash
 cd docker
 docker compose up -d
-# pgAdmin disponível em http://localhost:5050
+# pgAdmin disponível em http://localhost:5052
 ```
 
-### 4 — Gerar dados de exemplo
+### 3 — Gerar dados de exemplo
 
 ```bash
 python scripts/generate_inventory.py
 python scripts/generate_trends.py
-python scripts/generate_reviews.py
+#python scripts/generate_reviews.py
 ```
 
-### 5 — Correr o pipeline completo
+### 4 — Correr o pipeline completo (a partir daqui AINDA NÃO)
 
 ```bash
 python scripts/main.py --mode full
