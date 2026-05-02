@@ -1,9 +1,0 @@
-id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
-V001124,35-UE-36,Fiat,500,Citadino,4,2022,Gasolina,25000,10900,2023-07-21,12100,2023-10-11,Braga
-V001125,17-ZB-68,Nissan,Qashqai,SUV,5,2019,Híbrido a Gasolina,73000,12200,2023-07-31,13600,2023-11-30,Braga
-V001126,54-JU-38,Nissan,Qashqai,SUV,5,2019,Gasolina,59000,12500,2023-07-10,14100,2023-08-07,Braga
-V001127,40-UP-59,Tesla,Model 3,Elétrico,5,2020,100% Elétrico,35000,25500,2023-07-09,27100,2023-08-24,Braga
-V001128,12-CS-23,Hyundai,Kona,SUV,5,2021,Gasolina,40000,16100,2023-07-30,18500,2023-10-29,Braga
-V001129,12-KY-98,Volkswagen,Golf,Hatchback,5,2016,Híbrido a Gasolina,109000,8400,2023-07-25,9100,2023-08-06,Braga
-V001130,90-MV-87,Citroën,C3,Citadino,5,2019,Gasolina,74000,6100,2023-07-16,6900,2023-10-05,Braga
-V001131,73-HN-81,Seat,Ibiza,Citadino,5,2019,Gasóleo,53000,7400,2023-07-20,8300,2023-10-01,Braga

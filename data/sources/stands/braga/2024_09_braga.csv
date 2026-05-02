@@ -1,9 +1,0 @@
-id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
-V001259,88-SQ-86,Mercedes,Classe A,Hatchback,5,2020,Híbrido a Gasolina,63000,12700,2024-09-21,,,Braga
-V001260,78-QU-85,Kia,Niro,SUV,5,2022,Híbrido a Gasolina,34000,19800,2024-09-29,,,Braga
-V001261,25-OL-76,Hyundai,Kona,SUV,5,2023,Gasolina,29000,19800,2024-09-27,21400,2024-11-13,Braga
-V001262,15-NP-50,Hyundai,Kona,SUV,5,2019,Gasolina,72000,11300,2024-09-15,12300,2024-10-03,Braga
-V001263,75-PV-85,BMW,X1,SUV,5,2021,Híbrido a Gasolina,41000,20000,2024-09-27,23400,2024-10-30,Braga
-V001264,71-VU-16,Peugeot,3008,SUV,5,2018,Híbrido a Gasolina,96000,10500,2024-09-18,,,Braga
-V001265,80-UH-32,Peugeot,208,Citadino,5,2021,Gasolina,47000,9500,2024-09-04,10600,2024-09-27,Braga
-V001266,84-ZZ-94,Mercedes,Classe A,Hatchback,5,2018,Híbrido a Gasolina,79000,9800,2024-09-18,,,Braga

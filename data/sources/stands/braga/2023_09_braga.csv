@@ -1,9 +1,0 @@
-id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
-V001139,52-OF-86,Seat,Arona,SUV,5,2018,Gasolina,77000,8400,2023-09-17,,,Braga
-V001140,12-GM-47,Peugeot,208,Citadino,5,2021,100% Elétrico,42000,12200,2023-09-14,14300,2023-11-19,Braga
-V001141,60-US-27,Fiat,500,Citadino,4,2018,Híbrido a Gasolina,48000,7500,2023-09-28,8500,2023-11-07,Braga
-V001142,78-CI-43,Peugeot,3008,SUV,5,2015,Híbrido a Gasolina,117000,8900,2023-09-26,9800,2023-10-29,Braga
-V001143,89-OC-64,Volkswagen,Tiguan,SUV,5,2017,Gasóleo,70000,12000,2023-09-14,13500,2023-10-18,Braga
-V001144,98-AZ-13,Fiat,500,Citadino,4,2018,Híbrido a Gasolina,79000,6400,2023-09-11,7400,2023-09-29,Braga
-V001145,90-XT-13,Peugeot,3008,SUV,5,2017,Híbrido a Gasolina,78000,11000,2023-09-21,11700,2024-01-06,Braga
-V001146,28-TV-83,Kia,Niro,SUV,5,2022,100% Elétrico,35000,21600,2023-09-22,23100,2023-11-13,Braga

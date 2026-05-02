@@ -1,8 +1,0 @@
-id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
-V001277,56-HW-58,Nissan,Qashqai,SUV,5,2019,Gasóleo,77000,10700,2024-11-11,,,Braga
-V001278,36-NK-41,Mercedes,GLA,SUV,5,2023,Gasolina,18000,23700,2024-11-16,,,Braga
-V001279,93-US-48,Mercedes,Classe A,Hatchback,5,2018,Gasóleo,87000,9300,2024-11-17,9900,2024-12-11,Braga
-V001280,81-TN-65,Nissan,Qashqai,SUV,5,2018,Híbrido a Gasolina,94000,10600,2024-11-09,,,Braga
-V001281,53-RA-83,Mercedes,GLA,SUV,5,2019,Gasóleo,67000,15400,2024-11-09,,,Braga
-V001282,43-ZM-58,Kia,Niro,SUV,5,2022,Híbrido a Gasolina,48000,16600,2024-11-08,,,Braga
-V001283,87-TL-39,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,53000,10500,2024-11-06,,,Braga

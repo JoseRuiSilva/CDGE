@@ -1,9 +1,0 @@
-id_viatura,matricula,marca,modelo,tipo_automovel,num_lugares,ano_viatura,combustivel,quilometragem,preco_aquisicao,data_entrada_stock,preco_venda,data_venda,stand
-V000993,12-JM-35,Mercedes,Classe A,Hatchback,5,2017,Gasóleo,68000,11000,2022-05-14,12600,2022-05-28,Braga
-V000994,64-NW-53,Renault,Clio,Citadino,5,2018,Gasolina,61000,7200,2022-05-22,,,Braga
-V000995,24-AZ-26,Volkswagen,Golf,Hatchback,5,2016,Gasolina,77000,8500,2022-05-07,9900,2022-08-08,Braga
-V000996,53-TC-29,Volkswagen,Tiguan,SUV,5,2019,Gasóleo,40000,17800,2022-05-12,20400,2022-05-27,Braga
-V000997,20-FC-21,Kia,Niro,suv,5,2019,Híbrido a Gasolina,49000,15400,2022-05-21,18000,2022-07-23,Braga
-V000998,33-PJ-96,Nissan,Qashqai,SUV,5,2016,Gasolina,83000,9400,2022-05-03,10600,2022-09-18,Braga
-V000999,99-YC-34,Nissan,Leaf,Elétrico,5,2019,100% Elétrico,33000,14900,2022-05-15,17000,2022-07-14,Braga
-V001000,42-LX-40,Volkswagen,Golf,Hatchback,5,2016,Híbrido a Gasolina,90000,8800,2022-05-06,9600,2022-07-30,Braga
