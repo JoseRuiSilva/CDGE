@@ -52,7 +52,7 @@ projeto_auto_escala/
 ### 1 — Clonar e configurar o ambiente
 
 ```bash
-git clone https://github.com/JoseRuiSilva/CDGE.git
+git clone https://github.com/JoseRuiSilva/projeto_auto_escala.git
 cd projeto_auto_escala
 
 pip install -r requirements.txt
@@ -69,21 +69,21 @@ docker compose up -d
 ### 3 — Gerar dados de exemplo
 
 ```bash
-python scripts/generate_inventory.py
-python scripts/generate_trends.py
-#python scripts/generate_reviews.py
+python scripts\generate_inventory.py
+#python scripts\generate_trends.py
+#python scripts\generate_reviews.py
 ```
 
 ### 4 — Correr o pipeline completo (a partir daqui AINDA NÃO)
 
 ```bash
-python scripts/main.py --mode full
+python scripts\main.py --mode full
 ```
 
 ### Simulação mês a mês (demo)
 
 ```bash
-python scripts/main.py --mode batch --data_limite 2024-12-31
+python scripts\main.py --mode batch --data_limite 2024-12-31
 ```
 
 ---
