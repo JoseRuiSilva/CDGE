@@ -66,3 +66,5 @@ relatorio/*.toc
 
 # -- Ficheiros adicionais para uso próprio -----------------------------------
 extras/
+
+generate_samples.py

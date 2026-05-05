@@ -1,4 +1,5 @@
 import pandas as pd
+import pyarrow as pa
 import json
 import calendar
 import xml.etree.ElementTree as ET
@@ -9,15 +10,21 @@ from pathlib import Path
 
 # ─── CONFIGURAÇÃO ────────────────────────────────────────────────────────────
 
-STANDS_DIR    = Path("data/sources/stands")
-TRENDS_DIR    = Path("data/sources/trends")        # YYYY/MM/trends_YYYYMM.json
-FORUM_DIR     = Path("data/sources/forum")         # YYYY/MM/forum_YYYYMM.txt
-HASHTAGS_DIR  = Path("data/sources/hashtags")      # YYYY/WNN/hashtags_YYYYWNN.xml
+# 1. Calcular o diretório base dinamicamente (tal como no generate_samples.py)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-BRONZE_INVENTARIO = "data_lake/bronze/inventario_delta"
-BRONZE_TRENDS     = "data_lake/bronze/trends_delta"
-BRONZE_FORUM      = "data_lake/bronze/forum_delta"
-BRONZE_HASHTAGS   = "data_lake/bronze/hashtags_delta"
+# 2. Caminhos de Leitura (Sources)
+STANDS_DIR    = BASE_DIR / "data/sources/stands"
+TRENDS_DIR    = BASE_DIR / "data/sources/trends"        # YYYY/MM/trends_YYYYMM.json
+FORUM_DIR     = BASE_DIR / "data/sources/forum"         # YYYY/MM/forum_YYYYMM.txt
+HASHTAGS_DIR  = BASE_DIR / "data/sources/hashtags"      # YYYY/WNN/hashtags_YYYYWNN.xml
+
+# 3. Caminhos de Escrita (Data Lake - Bronze)
+# Convertidos para string nativa porque o write_deltalake por vezes lida melhor com strings
+BRONZE_INVENTARIO = str(BASE_DIR / "data_lake/bronze/inventario_delta")
+BRONZE_TRENDS     = str(BASE_DIR / "data_lake/bronze/trends_delta")
+BRONZE_FORUM      = str(BASE_DIR / "data_lake/bronze/forum_delta")
+BRONZE_HASHTAGS   = str(BASE_DIR / "data_lake/bronze/hashtags_delta")
 
 # Namespace do XML Atom Feed de hashtags (Talkwalker/Mention)
 NS_SL = {"sl": "http://www.talkwalker.com/sl"}
@@ -37,8 +44,13 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def converter_para_string(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converte colunas object para StringDtype do pandas.
+    Usa "string" em vez de str nativo para que nulos fiquem como pd.NA
+    e não como a string literal "nan" — consistente com o que o Silver espera.
+    """
     for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].astype(str)
+        df[col] = df[col].astype("string")  # MELHORIA 3: "string" em vez de str
     return df
 
 
@@ -60,14 +72,25 @@ def timestamp_agora() -> str:
 
 
 def escrever_bronze(df: pd.DataFrame, delta_path: str):
-    """Escreve no Bronze — cria tabela se não existir, senão faz append."""
+    """
+    Escreve no Bronze — cria tabela se não existir, senão faz append.
+
+    MELHORIA 1: converte para PyArrow com preserve_index=False antes de escrever,
+    evitando a coluna extra "__index_level_0__" que o pandas incluiria por omissão.
+
+    MELHORIA 2: schema_mode="merge" permite que ficheiros com colunas diferentes
+    (ex: hashtags com plataformas variáveis) sejam ingeridos sem erro de schema.
+    """
+    # MELHORIA 1: conversão explícita para PyArrow sem índice
+    tabela = pa.Table.from_pandas(df, preserve_index=False)
+
     try:
         DeltaTable(delta_path)
-        write_deltalake(delta_path, df, mode="append")
+        write_deltalake(delta_path, tabela, mode="append", schema_mode="merge")  # MELHORIA 2
         print(f"    APPEND → {len(df)} registos  [{delta_path}]")
     except Exception:
         Path(delta_path).mkdir(parents=True, exist_ok=True)
-        write_deltalake(delta_path, df, mode="overwrite")
+        write_deltalake(delta_path, tabela, mode="overwrite", schema_mode="merge")  # MELHORIA 2
         print(f"    CRIADA → {len(df)} registos  [{delta_path}]")
 
 
@@ -105,7 +128,7 @@ def ingerir_inventario(ficheiros: list):
             print(f"  AVISO: nome inesperado '{filepath.name}' — ignorado.")
             continue
 
-        df = pd.read_csv(filepath)
+        df = pd.read_csv(filepath, dtype=str)
         df = normalizar_colunas(df)
         df["ingestion_timestamp"] = timestamp_simulado(ano, mes)
         df["source_file"]         = filepath.name
@@ -239,7 +262,7 @@ def ingerir_forum(ficheiros: list = None):
         # 1 registo por ficheiro — texto inteiro como string (sem schema)
         registos.append({
             "source_file":         filepath.name,
-            "data_extracao":       f"{ano}-{mes:02d}-01",   # início do mês de scraping
+            "data_extracao":       f"{ano}-{mes:02d}-01",
             "ingestion_timestamp": timestamp_simulado(ano, mes),
             "texto_bruto":         texto_bruto,
         })
@@ -285,10 +308,10 @@ def ingerir_hashtags(ficheiros: list = None):
             print(f"  AVISO: {filepath.name} vazio — ignorado.")
             continue
 
-        # Extrair ano e semana do nome: hashtags_YYYYWNN.xml  (ex: hashtags_2022W03.xml)
+        # Extrair ano e semana do nome: hashtags_YYYYWNN.xml  (ex: hashtags_2024W03.xml)
         try:
-            stem   = filepath.stem            # "hashtags_2022W03"
-            partes = stem.split("_")[1]       # "2022W03"
+            stem   = filepath.stem            # "hashtags_2024W03"
+            partes = stem.split("_")[1]       # "2024W03"
             ano    = int(partes[:4])
             semana = int(partes[5:])          # após o "W"
         except (ValueError, IndexError):
@@ -307,7 +330,6 @@ def ingerir_hashtags(ficheiros: list = None):
 
         registos = []
         for entry in root.findall("atom:entry", ns_atom):
-            # Campos principais
             hashtag     = entry.findtext("sl:hashtag",     namespaces=NS_SL, default="")
             data        = entry.findtext("sl:date",         namespaces=NS_SL, default="")
             total_posts = entry.findtext("sl:total_posts",  namespaces=NS_SL, default="0")
