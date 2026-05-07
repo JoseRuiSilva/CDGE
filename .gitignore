@@ -15,6 +15,11 @@ data/watermark.json
 # ── Delta Lake (gerado pelo pipeline — pode ser reconstruído) ───────────────
 data_lake/
 
+# ── Airflow (gerado em runtime pelo Docker — não versionar) ─────────────────
+airflow/logs/
+airflow/plugins/
+airflow_home/
+
 # ── Python ──────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
@@ -64,6 +69,6 @@ relatorio/*.aux
 relatorio/*.out
 relatorio/*.toc
 
-# -- Ficheiros adicionais para uso próprio -----------------------------------
+# ── Ficheiros adicionais para uso próprio ────────────────────────────────────
 extras/
-scripts_extra
+scripts_extra/

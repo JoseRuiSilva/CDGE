@@ -1,22 +1,25 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Auto Escala — Dependências Python
-# Gerar ficheiro bloqueado: pip freeze > requirements.lock
+# Instalar: pip install -r requirements.txt
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Pipeline e Delta Lake
 pandas>=2.2
 deltalake>=0.17
-pysentimiento
 
 # Base de dados
 psycopg[binary]>=3.1
 sqlalchemy>=2.0
 
-# Análise preditiva (Fase 5)
+# Análise preditiva
 prophet>=1.1
 
 # Data Profiling
 ydata-profiling>=4.0
 
-# Utilitários
-#python-dotenv>=1.0
+# Análise de Sentimento NLP (opcional — pesado, não instalado no Airflow)
+# Descomentar para execução local com --nlp
+# pysentimiento
+
+# Utilitários (já incluídos na stdlib do Python 3.11)
+# urllib, socket, base64, calendar, shutil → não precisam de instalação
