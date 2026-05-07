@@ -235,64 +235,115 @@ INSERT INTO dim_fonte (nome_fonte, tipo_fonte, descricao) VALUES
 ON CONFLICT (nome_fonte) DO NOTHING;
 
 INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VALUES
-    -- Marcas
+    -- ── Marcas (forma canónica em minúsculas → forma correta) ────────────────
+    -- Coberto: as marcas mais comuns nos dados gerados
+    -- Deliberadamente em falta: variantes com erros ortográficos (ex: 'renaut',
+    -- 'peugot') e marcas menos comuns (Opel, Ford, Toyota, Skoda, Honda)
+    -- para garantir que o Silver continua a enviar registos para quarentena.
     ('marca', 'volkswagen',    'Volkswagen'),
     ('marca', 'vw',            'Volkswagen'),
     ('marca', 'mercedes',      'Mercedes'),
+    ('marca', 'mercedes-benz', 'Mercedes'),
     ('marca', 'bmw',           'BMW'),
     ('marca', 'peugeot',       'Peugeot'),
     ('marca', 'nissan',        'Nissan'),
     ('marca', 'seat',          'Seat'),
     ('marca', 'renault',       'Renault'),
     ('marca', 'citroën',       'Citroën'),
+    ('marca', 'citroen',       'Citroën'),
     ('marca', 'fiat',          'Fiat'),
     ('marca', 'audi',          'Audi'),
     ('marca', 'tesla',         'Tesla'),
     ('marca', 'hyundai',       'Hyundai'),
     ('marca', 'kia',           'Kia'),
-    -- Modelos
-    ('modelo', 'gla',          'GLA'),
-    ('modelo', 'x1',           'X1'),
-    ('modelo', 'tiguan',       'Tiguan'),
-    ('modelo', '3008',         '3008'),
-    ('modelo', 'qashqai',      'Qashqai'),
-    ('modelo', 'arona',        'Arona'),
-    ('modelo', 'golf',         'Golf'),
-    ('modelo', 'golf mk7',     'Golf'),
-    ('modelo', 'clio',         'Clio'),
-    ('modelo', 'ibiza',        'Ibiza'),
-    ('modelo', 'c3',           'C3'),
-    ('modelo', '500',          '500'),
-    ('modelo', '208',          '208'),
-    ('modelo', 'série 1',      'Série 1'),
-    ('modelo', 'serie 1',      'Série 1'),
-    ('modelo', 'classe a',     'Classe A'),
-    ('modelo', 'a3',           'A3'),
-    ('modelo', 'model 3',      'Model 3'),
-    ('modelo', 'zoe',          'Zoe'),
-    ('modelo', 'leaf',         'Leaf'),
-    ('modelo', 'kona',         'Kona'),
-    ('modelo', 'niro',         'Niro'),
-    ('modelo', 'yaris',        'Yaris'),
-    ('modelo', 'toyota yaris', 'Yaris'),
-    ('modelo', 'série 3',      'Série 3'),
-    ('modelo', 'serie 3',      'Série 3'),
-    ('modelo', 'bmw série 3',  'Série 3'),
-    ('modelo', 'bmw serie 3',  'Série 3'),
-    ('modelo', '320d',         'Série 3'),
-    ('modelo', 'classe c',     'Classe C'),
-    ('modelo', 'ateca',        'Ateca'),
-    ('modelo', 'seat ateca',   'Ateca'),
-    ('modelo', 'karoq',        'Karoq'),
-    ('modelo', 'skoda karoq',  'Karoq'),
-    -- Hashtags
-    ('hashtag', 'volkswagengolf', 'Golf'),
-    ('hashtag', 'toyotayaris',    'Yaris'),
-    ('hashtag', 'bmw',            'BMW'),
-    ('hashtag', 'mercedes',       'Mercedes'),
-    ('hashtag', 'suv',            'SUV'),
-    ('hashtag', 'carroeletrico',  'Elétrico'),
-    ('hashtag', 'hibrido',        'Híbrido')
+    -- Modelos ─────────────────────────────────────────────────────────────────
+    -- GLA / Mercedes
+    ('modelo', 'gla',            'GLA'),
+    ('modelo', 'mercedes gla',   'GLA'),
+    -- BMW
+    ('modelo', 'x1',             'X1'),
+    ('modelo', 'bmw x1',         'X1'),
+    ('modelo', 'série 1',        'Série 1'),
+    ('modelo', 'serie 1',        'Série 1'),
+    ('modelo', 's1',             'Série 1'),
+    ('modelo', 'série 3',        'Série 3'),
+    ('modelo', 'serie 3',        'Série 3'),
+    ('modelo', 'bmw série 3',    'Série 3'),
+    ('modelo', 'bmw serie 3',    'Série 3'),
+    ('modelo', '320d',           'Série 3'),
+    ('modelo', '320i',           'Série 3'),
+    -- Volkswagen
+    ('modelo', 'tiguan',         'Tiguan'),
+    ('modelo', 'vw tiguan',      'Tiguan'),
+    ('modelo', 'golf',           'Golf'),
+    ('modelo', 'golf mk7',       'Golf'),
+    ('modelo', 'golf mk8',       'Golf'),
+    ('modelo', 'vw golf',        'Golf'),
+    -- Peugeot
+    ('modelo', '3008',           '3008'),
+    ('modelo', 'peugeot 3008',   '3008'),
+    ('modelo', '208',            '208'),
+    ('modelo', 'peugeot 208',    '208'),
+    -- Nissan
+    ('modelo', 'qashqai',        'Qashqai'),
+    ('modelo', 'nissan qashqai', 'Qashqai'),
+    ('modelo', 'leaf',           'Leaf'),
+    ('modelo', 'nissan leaf',    'Leaf'),
+    -- Seat
+    ('modelo', 'arona',          'Arona'),
+    ('modelo', 'seat arona',     'Arona'),
+    ('modelo', 'ibiza',          'Ibiza'),
+    ('modelo', 'seat ibiza',     'Ibiza'),
+    ('modelo', 'ateca',          'Ateca'),
+    ('modelo', 'seat ateca',     'Ateca'),
+    -- Renault
+    ('modelo', 'clio',           'Clio'),
+    ('modelo', 'renault clio',   'Clio'),
+    ('modelo', 'zoe',            'Zoe'),
+    ('modelo', 'renault zoe',    'Zoe'),
+    -- Citroën
+    ('modelo', 'c3',             'C3'),
+    ('modelo', 'citroën c3',     'C3'),
+    ('modelo', 'citroen c3',     'C3'),
+    -- Fiat
+    ('modelo', '500',            '500'),
+    ('modelo', 'fiat 500',       '500'),
+    -- Mercedes
+    ('modelo', 'classe a',       'Classe A'),
+    ('modelo', 'classe c',       'Classe C'),
+    -- Audi
+    ('modelo', 'a3',             'A3'),
+    ('modelo', 'audi a3',        'A3'),
+    -- Tesla
+    ('modelo', 'model 3',        'Model 3'),
+    ('modelo', 'tesla model 3',  'Model 3'),
+    -- Hyundai
+    ('modelo', 'kona',           'Kona'),
+    ('modelo', 'hyundai kona',   'Kona'),
+    ('modelo', 'i30',            'i30'),
+    -- Kia
+    ('modelo', 'niro',           'Niro'),
+    ('modelo', 'kia niro',       'Niro'),
+    -- Skoda (marca nao esta na tabela de marcas -- ira para quarentena)
+    ('modelo', 'karoq',          'Karoq'),
+    ('modelo', 'skoda karoq',    'Karoq'),
+    -- Hashtags ────────────────────────────────────────────────────────────────
+    ('hashtag', 'volkswagengolf',   'Golf'),
+    ('hashtag', 'vwgolf',           'Golf'),
+    ('hashtag', 'toyotayaris',      'Yaris'),
+    ('hashtag', 'bmw',              'BMW'),
+    ('hashtag', 'bmwx1',            'X1'),
+    ('hashtag', 'mercedes',         'Mercedes'),
+    ('hashtag', 'mercedesgla',      'GLA'),
+    ('hashtag', 'suv',              'SUV'),
+    ('hashtag', 'suvportugal',      'SUV'),
+    ('hashtag', 'carroeletrico',    'Elétrico'),
+    ('hashtag', 'carroseletricos',  'Elétrico'),
+    ('hashtag', 'hibrido',          'Híbrido'),
+    ('hashtag', 'veiculohibrido',   'Híbrido'),
+    ('hashtag', 'peugeot208',       '208'),
+    ('hashtag', 'renaultclio',      'Clio'),
+    ('hashtag', 'seatibiza',        'Ibiza')
 ON CONFLICT (campo, valor_original) DO NOTHING;
 """
 

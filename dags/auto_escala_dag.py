@@ -64,7 +64,12 @@ def _parse_data_limite(conf: dict, logical_date: datetime) -> date:
 @dag(
     dag_id="auto_escala_pipeline",
     description="Pipeline mensal Auto Escala: Bronze -> Silver -> PostgreSQL -> Prophet",
-    schedule="@monthly",
+    # Primeiro domingo do mes as 23:00 UTC
+    # "1-7 * 0" = dia entre 1 e 7, domingo -- primeiro domingo do mes.
+    # Logica: o mes anterior fecha, o stand esta fechado ao domingo,
+    # o pipeline corre durante a noite e os resultados estao prontos
+    # quando o stand abre na segunda-feira seguinte.
+    schedule="0 23 1-7 * 0",
     start_date=datetime(2024, 1, 1),
     catchup=False,          # Nao re-executar meses passados automaticamente
     max_active_runs=1,      # Evitar runs concorrentes (watermarks nao sao thread-safe)

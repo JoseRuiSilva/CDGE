@@ -922,7 +922,7 @@ def run_silver(
     # Pre-check TCP rapido para nao ficar pendurado se o Docker nao estiver a correr
     pg_disponivel = False
     try:
-        with socket.create_connection(("localhost", 5432), timeout=3.0):
+        with socket.create_connection((_PG_HOST, int(_PG_PORT)), timeout=3.0):
             pg_disponivel = True
     except (OSError, ConnectionRefusedError):
         pass
