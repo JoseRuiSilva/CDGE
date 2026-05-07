@@ -3,7 +3,7 @@
 > Trabalho Prático — Ciências de Dados em Grande Escala (CDGE)  
 > Licenciatura em Ciência de Dados, 3º Ano | Universidade do Minho | 2025/2026
 
-Sistema de análise de tendências de aquisição de veículos usados para uma rede fictícia de stands em Portugal (Lisboa, Porto, Braga). O pipeline ingere dados de inventário, tendências de pesquisa e reviews, transforma-os em camadas Bronze → Silver → Gold e expõe um star schema em PostgreSQL para visualização em Power BI.
+Sistema de análise de tendências de aquisição de veículos usados para uma rede fictícia de stands em Portugal (Lisboa, Porto, Braga). O pipeline ingere dados de inventário, tendências de pesquisa, publicações em fóruns e hashtags em redes sociais, transforma-os em camadas Bronze → Silver e expõe um star schema em PostgreSQL enriquecido por um modelo preditivo (Prophet).
 
 ---
 
@@ -12,27 +12,27 @@ Sistema de análise de tendências de aquisição de veículos usados para uma r
 ```
 projeto_auto_escala/
 ├── data/
-│   └── sources/               # Dados brutos gerados (ignorado pelo git)
-│       ├── stands/            # CSVs mensais por stand
-│       ├── trends/            # google_trends.json
-│       └── reviews/           # reviews.csv
+│   ├── sources/               # Dados brutos gerados
+│   └── profiling_reports/     # Relatórios de qualidade ydata-profiling
 ├── data_lake/
 │   ├── bronze/                # Ingestão raw em Delta Lake
-│   ├── silver/                # Dados limpos e validados
-│   └── gold/                  # Agregados prontos para consumo
+│   ├── silver/                # Dados limpos e validados em Delta Lake
+│   └── quarantine/            # Registos rejeitados na limpeza
 ├── scripts/
 │   ├── generate_inventory.py  # Gerador de CSVs de inventário
-│   ├── generate_trends.py     # Gerador de tendências Google
-│   ├── generate_reviews.py    # Gerador de reviews
+│   ├── generate_trends.py     # Gerador de tendências Google (JSON)
+│   ├── generate_forum.py      # Gerador de posts no fórum (TXT)
+│   ├── generate_hashtags.py   # Gerador de métricas sociais (XML)
+│   ├── generate_dw.py         # DDL do Star Schema no PostgreSQL com Auditoria CDC
 │   ├── bronze_pipeline.py     # Ingestão → Bronze (Delta append)
-│   ├── silver_pipeline.py     # Bronze → Silver (limpeza, validação)
-│   ├── gold_pipeline.py       # Silver → Gold (agregações)
-│   ├── cdc_pipeline.py        # Controlo de watermark incremental
-│   ├── load_to_postgres.py    # UPSERT no star schema PostgreSQL
-│   └── main.py                # Orquestrador (--mode, --data_limite)
+│   ├── silver_pipeline.py     # Bronze → Silver (limpeza, tipagem, NLP)
+│   ├── load_to_postgres.py    # Silver → PostgreSQL (UPSERT / SCD Tipo 1)
+│   ├── prophet_model.py       # Modelo Preditivo (Forecasting com Facebook Prophet)
+│   ├── data_profiling.py      # Relatórios HTML da qualidade de dados (Bronze)
+│   ├── simulate_batches.py    # Utilitário para simulação cronológica
+│   └── main.py                # Orquestrador da pipeline (Full Load / Incremental)
 ├── docker/
-│   ├── docker-compose.yaml
-│   └── .env.example
+│   └── docker-compose.yaml    # PostgreSQL + pgAdmin
 ├── requirements.txt
 └── README.md
 ```
@@ -64,27 +64,57 @@ pip install -r requirements.txt
 cd docker
 docker compose up -d
 # pgAdmin disponível em http://localhost:5052
+cd ..
 ```
 
-### 3 — Gerar dados de exemplo
+### 3 — Gerar dados base (Histórico)
 
 ```bash
-python scripts\generate_inventory.py
-#python scripts\generate_trends.py
-#python scripts\generate_reviews.py
+python scripts/generate_inventory.py
+python scripts/generate_trends.py
+python scripts/generate_forum.py
+python scripts/generate_hashtags.py
 ```
 
-### 4 — Correr o pipeline completo (a partir daqui AINDA NÃO)
+### 4 — Iniciar a Base de Dados (Star Schema)
 
 ```bash
-python scripts\main.py --mode full
+python scripts/generate_dw.py
 ```
 
-### Simulação mês a mês (demo)
+### 5 — Correr o pipeline
+
+Existem duas formas de executar a pipeline e carregar os dados. Recomendamos a Opção A para ver o processo CDC em ação automaticamente.
+
+#### Opção A: Automática (Simulação Mês a Mês) [RECOMENDADO]
+
+O script `simulate_batches.py` verifica automaticamente se o histórico (2022-2023) já foi carregado e, se não, corre o `full_load`. De seguida, processa incrementalmente os dados de 2024 em diante, mês a mês.
 
 ```bash
-python scripts\main.py --mode batch --data_limite 2024-12-31
+python scripts/simulate_batches.py
 ```
+
+**Opções úteis do simulador:**
+- `--pausa 2.0` : Adiciona uma pausa (em segundos) entre batches para acompanhares melhor o processo no terminal.
+- `--no-nlp` : Corre a pipeline sem o modelo BERT de Sentimentos (muito mais rápido, ideal para testes rápidos).
+- `--skip-full-load` : Ignora o carregamento histórico caso queiras apenas testar a lógica incremental.
+- `--desde YYYY-MM --ate YYYY-MM` : Controla os meses exatos a simular na fase incremental.
+
+#### Opção B: Manual (Passo a passo)
+
+Se preferires ter controlo total sobre os períodos processados, podes usar o orquestrador principal `main.py`:
+
+**1. Carga Histórica (até dezembro de 2023):**
+```bash
+python scripts/main.py --mode full_load --reset
+```
+> **Nota**: A flag `--reset` é útil para forçar uma limpeza do Data Lake e da BD antes de correr o pipeline e começar do zero.
+
+**2. Carga Incremental Lote a Lote:**
+```bash
+python scripts/main.py --mode incremental --data_limite 2024-03-31
+```
+*(Lê os watermarks na BD e processa apenas ficheiros novos inseridos desde o último batch até à data limite).*
 
 ---
 
@@ -92,17 +122,18 @@ python scripts\main.py --mode batch --data_limite 2024-12-31
 
 | Componente | Tecnologia |
 |---|---|
-| Pipeline ETL | Python + pandas |
+| Pipeline ETL | Python + pandas + ydata-profiling |
 | Armazenamento local | Delta Lake (delta-rs, sem Spark) |
-| Base de dados | PostgreSQL 16 |
+| Base de Dados / MDM / CDC | PostgreSQL 16 (Auditoria via Triggers + SCD 1) |
 | Administração BD | pgAdmin 4 |
+| Análise de Sentimento (NLP) | pysentimiento (RoBERTa em Português) |
 | Contentorização | Docker Compose |
-| Análise preditiva | Prophet |
+| Análise Preditiva (ML) | Facebook Prophet |
 | Visualização | Power BI Desktop |
 
 ---
 
 ## Equipa
 
-Trabalho desenvolvido por 4 elementos no âmbito da UC de CDGE.  
+Trabalho desenvolvido no âmbito da UC de CDGE.  
 Professor: Orlando Belo — obelo@di.uminho.pt

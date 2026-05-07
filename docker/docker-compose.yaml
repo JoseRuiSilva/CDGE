@@ -1,24 +1,68 @@
 name: auto_escala
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Auto Escala — Docker Compose
+# Auto Escala -- Docker Compose
 # CDGE | Universidade do Minho | 2025-2026
 #
-# Pré-requisitos:
+# Pre-requisitos:
 #   - Ficheiro .env na mesma pasta (ver .env.example)
 #   - docker compose up -d
-# 
-# Server:
-#   - Name: auto_escala
-#   - Host name: postgres
-#   - Port: 5432
-#   - Username: ae_user
-#   - Password: ae_pass_2026
+#
+# Servicos disponiveis apos 'docker compose up -d':
+#   PostgreSQL : localhost:5432  (ae_user / ae_pass_2026)
+#   pgAdmin    : http://localhost:5052  (admin@autoescala.pt / admin2026)
+#   Airflow UI : http://localhost:8080  (admin / admin)
+#
+# Inicializacao (so e necessaria 1 vez):
+#   docker compose up airflow-init
+#   docker compose up -d
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── Configuracao comum a todos os servicos Airflow ────────────────────────────
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.1-python3.11
+  environment:
+    # Executor local -- sem Celery/Redis, suficiente para 1 maquina
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    # Usar o mesmo PostgreSQL do projecto (schema 'public' para tabelas do Airflow)
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://ae_user:ae_pass_2026@postgres:5432/auto_escala
+    # Desactivar exemplos de DAGs
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # Webserver
+    AIRFLOW__WEBSERVER__SECRET_KEY: "autoescala_cdge_2026_secret"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    # Encoding UTF-8 para prints em portugues
+    PYTHONUTF8: "1"
+    PYTHONIOENCODING: "utf-8"
+    # Host do PostgreSQL do PROJECTO (diferente do Airflow metadata DB acima)
+    # Os scripts Python (main.py, silver_pipeline.py, etc.) usam esta variavel
+    # para construir a DW_URL: 'postgres' dentro do Docker, 'localhost' fora.
+    PG_HOST: "postgres"
+    PG_PORT: "5432"
+    # Instalar dependencias do projecto no arranque
+    # NOTA: pysentimiento nao esta aqui porque puxa PyTorch + CUDA (~2GB)
+    # NLP corre fora do container ou com --no-nlp (recomendado para demo)
+    _PIP_ADDITIONAL_REQUIREMENTS: >-
+      pandas pyarrow deltalake sqlalchemy psycopg[binary]
+      prophet
+  volumes:
+    # DAGs do projecto
+    - ../dags:/opt/airflow/dags
+    # Scripts reutilizados como PythonOperator tasks
+    - ../scripts:/opt/airflow/scripts
+    # Landing Zone (fontes de dados)
+    - ../data:/opt/airflow/data
+    # Delta Lake (Bronze, Silver, Quarentena)
+    - ../data_lake:/opt/airflow/data_lake
+  depends_on:
+    postgres:
+      condition: service_healthy
 
 services:
 
-  # ── Base de dados ────────────────────────────────────────────────────────
+  # ── Base de dados (PostgreSQL) ────────────────────────────────────────────
+  # Serve tanto o Star Schema do projecto (schema auto_escala_dw)
+  # como os metadados internos do Airflow (schema public)
   postgres:
     image: postgres:16
     container_name: auto_escala_postgres
@@ -37,7 +81,7 @@ services:
       timeout: 3s
       retries: 20
 
-  # ── Administração web ────────────────────────────────────────────────────
+  # ── Administracao web (pgAdmin) ───────────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: auto_escala_pgadmin
@@ -54,26 +98,54 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
-  # ── Pipeline Python ──────────────────────────────────────────────────────
-  # Descomentar quando main.py estiver implementado e o Dockerfile criado.
-  #
-  # app:
-  #   build:
-  #     context: ..
-  #     dockerfile: Dockerfile
-  #   container_name: auto_escala_app
-  #   restart: "no"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ae_user}:${POSTGRES_PASSWORD:-ae_pass_2026}@postgres:5432/${POSTGRES_DB:-auto_escala}
-  #     PYTHONPATH: /app
-  #   command: ["python", "scripts/main.py"]
-  #   volumes:
-  #     - ../data:/app/data
+  # ── Airflow: Inicializacao (corre uma unica vez) ──────────────────────────
+  # Migra o schema do Airflow no PostgreSQL e cria o utilizador admin.
+  # Executa e sai -- nao e um servico permanente.
+  airflow-init:
+    <<: *airflow-common
+    container_name: auto_escala_airflow_init
+    restart: "no"
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --password admin --firstname Auto --lastname Escala --role Admin --email admin@autoescala.pt &&
+        echo 'Airflow inicializado com sucesso.'
+      "
+
+  # ── Airflow: Scheduler ────────────────────────────────────────────────────
+  # Le as DAGs e agenda/executa as tasks.
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: auto_escala_airflow_scheduler
+    restart: unless-stopped
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Airflow: Webserver (UI) ───────────────────────────────────────────────
+  # Interface grafica disponivel em http://localhost:8080
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: auto_escala_airflow_webserver
+    restart: unless-stopped
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-scheduler:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   postgres_data:

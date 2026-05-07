@@ -8,6 +8,10 @@ from pathlib import Path
 from typing import Iterable
 
 
+
+### VERIFICAR SE CARROS QUE NAO FORAM VENDIDOS APARECEM OUTRA VEZ NUM MES DIFERENTE A SER VENDIDO
+### SE NAO FOR O CASO SE CALHAR GUARDAR ESSE CARRO E INSERIR NOUTRO MES
+
 BASE_DIR=Path(__file__).resolve().parent.parent
 OUTPUT_ROOT=BASE_DIR/"data"/"sources"/"stands"
 START_DATE=date(2022,1,1)

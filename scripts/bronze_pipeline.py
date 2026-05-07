@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from deltalake import DeltaTable, write_deltalake
 from datetime import datetime, timezone
 from pathlib import Path
+import os
 
 
 # ─── CONFIGURAÇÃO ────────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ BRONZE_FORUM      = str(BASE_DIR / "data_lake/bronze/forum_delta")
 BRONZE_HASHTAGS   = str(BASE_DIR / "data_lake/bronze/hashtags_delta")
 
 # Namespace do XML Atom Feed de hashtags (Talkwalker/Mention)
-NS_SL = {"sl": "http://www.talkwalker.com/sl"}
+NS_SL = {"sl": "http://autoescala.pt/social-listening"}
 
 
 # ─── UTILITÁRIOS ─────────────────────────────────────────────────────────────
@@ -87,11 +88,11 @@ def escrever_bronze(df: pd.DataFrame, delta_path: str):
     try:
         DeltaTable(delta_path)
         write_deltalake(delta_path, tabela, mode="append", schema_mode="merge")  # MELHORIA 2
-        print(f"    APPEND → {len(df)} registos  [{delta_path}]")
+        print(f"    APPEND -> {len(df)} registos  [{delta_path}]")
     except Exception:
         Path(delta_path).mkdir(parents=True, exist_ok=True)
         write_deltalake(delta_path, tabela, mode="overwrite", schema_mode="merge")  # MELHORIA 2
-        print(f"    CRIADA → {len(df)} registos  [{delta_path}]")
+        print(f"    CRIADA -> {len(df)} registos  [{delta_path}]")
 
 
 def ficheiros_ja_ingeridos(delta_path: str) -> set:
@@ -135,7 +136,8 @@ def ingerir_inventario(ficheiros: list):
         df["source_stand"]        = filepath.parent.name.capitalize()
         df = converter_para_string(df)
 
-        print(f"  {filepath.name} → {len(df)} registos")
+        if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
+            print(f"  {filepath.name} → {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:
@@ -164,7 +166,8 @@ def ingerir_trends(ficheiros: list = None):
         filepath = Path(filepath)
 
         if filepath.name in ja_ingeridos:
-            print(f"  SKIP  {filepath.name} — já ingerido.")
+            if os.environ.get("AE_VERBOSE", "info") == "debug":
+                print(f"  SKIP  {filepath.name} — já ingerido.")
             continue
 
         if not filepath.exists():
@@ -203,7 +206,8 @@ def ingerir_trends(ficheiros: list = None):
         df["source_file"]         = filepath.name
         df = converter_para_string(df)
 
-        print(f"  {filepath.name} → {len(df)} registos")
+        if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
+            print(f"  {filepath.name} → {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:
@@ -233,7 +237,8 @@ def ingerir_forum(ficheiros: list = None):
         filepath = Path(filepath)
 
         if filepath.name in ja_ingeridos:
-            print(f"  SKIP  {filepath.name} — já ingerido.")
+            if os.environ.get("AE_VERBOSE", "info") == "debug":
+                print(f"  SKIP  {filepath.name} — já ingerido.")
             continue
 
         if not filepath.exists():
@@ -266,7 +271,8 @@ def ingerir_forum(ficheiros: list = None):
             "ingestion_timestamp": timestamp_simulado(ano, mes),
             "texto_bruto":         texto_bruto,
         })
-        print(f"  {filepath.name} → 1 registo  ({len(texto_bruto)} chars)")
+        if os.environ.get("AE_VERBOSE", "info") == "debug":
+            print(f"  {filepath.name} → 1 registo  ({len(texto_bruto)} chars)")
 
     if registos:
         df = pd.DataFrame(registos)
@@ -297,7 +303,8 @@ def ingerir_hashtags(ficheiros: list = None):
         filepath = Path(filepath)
 
         if filepath.name in ja_ingeridos:
-            print(f"  SKIP  {filepath.name} — já ingerido.")
+            if os.environ.get("AE_VERBOSE", "info") == "debug":
+                print(f"  SKIP  {filepath.name} — já ingerido.")
             continue
 
         if not filepath.exists():
@@ -360,7 +367,8 @@ def ingerir_hashtags(ficheiros: list = None):
         df = normalizar_colunas(df)
         df = converter_para_string(df)
 
-        print(f"  {filepath.name} → {len(df)} registos")
+        if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
+            print(f"  {filepath.name} → {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:

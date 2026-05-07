@@ -12,7 +12,9 @@ Decisões de desenho: ver contexto_auto_escala_llm.txt e diálogos de decisão.
 """
 
 import re
+import sys
 import time
+import socket
 import pandas as pd
 import pyarrow as pa
 from deltalake import DeltaTable, write_deltalake
@@ -20,18 +22,40 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import create_engine, text
 
-# ─── NLP — pysentimiento com fallback gracioso ───────────────────────────────
-# Se não estiver instalado (pip install pysentimiento), sentimento fica 0.0
-# e a pipeline continua sem erros. Ver secção 7 do relatório.
-try:
-    from pysentimiento import create_analyzer as _criar_analisador
-    _analisador_nlp = _criar_analisador(task="sentiment", lang="pt")
-    NLP_DISPONIVEL = True
-    print("[Silver] NLP: pysentimiento carregado com sucesso.")
-except Exception as _err_nlp:
-    _analisador_nlp = None
-    NLP_DISPONIVEL = False
-    print(f"[Silver] AVISO: pysentimiento indisponível ({_err_nlp}). Score sentimento = 0.0.")
+# ─── LOGGING ─────────────────────────────────────────────────────────────────
+
+def _log(msg: str, nivel: str = "INFO") -> None:
+    """Print com timestamp ISO usado em toda a pipeline Silver."""
+    ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    print(f"  [{ts}] [{nivel}] {msg}")
+
+
+# ─── NLP com lazy loading ─────────────────────────────────────────────────────
+# O modelo BERT so e carregado quando silver_forum for chamado com NLP activo.
+# Evita atrasos em runs de debug ou batches sem ficheiros de forum novos.
+# Na 1a execucao pode demorar 10-30s (download HF Hub) -- use --no-nlp para saltar.
+
+_analisador_nlp = None
+NLP_DISPONIVEL  = False
+_nlp_ja_tentado = False
+
+
+def _carregar_nlp() -> None:
+    """Carrega pysentimiento na primeira chamada (lazy). No-op nas seguintes."""
+    global _analisador_nlp, NLP_DISPONIVEL, _nlp_ja_tentado
+    if _nlp_ja_tentado:
+        return
+    _nlp_ja_tentado = True
+    _log("NLP: a inicializar pysentimiento (1a execucao pode demorar)...")
+    try:
+        from pysentimiento import create_analyzer as _criar_analisador
+        _analisador_nlp = _criar_analisador(task="sentiment", lang="pt")
+        NLP_DISPONIVEL  = True
+        _log("NLP: pysentimiento carregado com sucesso.")
+    except Exception as _err_nlp:
+        _analisador_nlp = None
+        NLP_DISPONIVEL  = False
+        _log(f"AVISO NLP: pysentimiento indisponivel ({_err_nlp}). Score = 0.0.", "WARN")
 
 
 # ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
@@ -56,8 +80,10 @@ QUARENTENA_TRENDS     = str(BASE_DIR / "data_lake/quarantine/trends_delta")
 QUARENTENA_FORUM      = str(BASE_DIR / "data_lake/quarantine/forum_delta")
 QUARENTENA_HASHTAGS   = str(BASE_DIR / "data_lake/quarantine/hashtags_delta")
 
-# PostgreSQL — dicionário de normalização e data_quality_log
-DW_URL    = "postgresql+psycopg://ae_user:ae_pass_2026@localhost:5432/auto_escala"
+# PostgreSQL -- dicionario de normalizacao e data_quality_log
+_PG_HOST  = __import__("os").environ.get("PG_HOST", "localhost")
+_PG_PORT  = __import__("os").environ.get("PG_PORT", "5432")
+DW_URL    = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
 DW_SCHEMA = "auto_escala_dw"
 
 # Limiares de deteção de tendências (documentados na secção 5.3 do relatório)
@@ -76,6 +102,25 @@ _REGEX_RUIDO_FORUM = re.compile(
 )
 # Linha de cabeçalho de post: "username  |  YYYY-MM"
 _REGEX_CABECALHO_POST = re.compile(r"^[\w_\-]+\s{2,}\|\s{2,}\d{4}-\d{2}$")
+
+# Frases de ruído literais do generate_forum.py (header, footer, metadata de utilizador).
+# Usadas quando o texto chega como bloco contínuo (sem '\n') em vez de linhas separadas.
+_RUIDO_LITERAIS_FORUM = [
+    "motorguia.net Forum Automovel Portugues Registo Login Pesquisar",
+    "Bem-vindo convidado Entrar Registar Topicos Recentes Atividade",
+    "Novos Posts Ajuda Calendario Comunidade Forum Regras Utilizadores",
+    "Topicos Recentes 1 2 3 ... 24 Proxima Pagina Anterior Ir para o topo",
+    "Contactos Arquivo Politica de Privacidade Termos de Utilizacao",
+    "motorguia.net 2005-2026 Todos os direitos reservados",
+    "Ver perfil Responder Citar",
+    "Pagina 1 de 2", "Pagina 2 de 3", "Pagina 1 de 3", "Pagina 1 de 4",
+    "Pagina 2 de 2",
+]
+# Metadata de utilizador: "Membro desde Mar 2017 892 posts" / "Senior Member 3401 posts"
+_REGEX_METADATA_UTILIZADOR = re.compile(
+    r"(?:Membro|Senior\s+Member|Utilizador\s+registado)[^.]{0,80}posts",
+    re.IGNORECASE,
+)
 
 
 # ─── UTILITÁRIOS GERAIS ───────────────────────────────────────────────────────
@@ -211,25 +256,45 @@ def _extrair_mencoes(texto: str, dicionario: pd.DataFrame) -> tuple[list[str], l
 
 # ─── NLP — SENTIMENTO ─────────────────────────────────────────────────────────
 
-def _analisar_sentimento(texto: str) -> float:
+def _analisar_sentimento(texto: str, nlp_habilitado: bool = True) -> float:
     """
     Devolve score de sentimento em [-1.0, +1.0] usando pysentimiento.
-    Divide o texto em parágrafos para respeitar o limite de ~512 tokens do modelo.
-    Devolve 0.0 se NLP indisponível ou texto sem conteúdo.
+    Devolve 0.0 se NLP desabilitado, indisponivel ou texto sem conteudo.
+
+    Estrategia de chunking (respeita o limite de ~512 tokens do modelo):
+    - Formato multi-linha: divide por paragrafos (linhas com >15 chars).
+    - Formato continuo (bloco unico): divide em janelas de 400 chars com overlap
+      por fronteira de palavra, cobrindo todo o documento em vez de apenas os
+      primeiros 500 chars.
     """
-    if not NLP_DISPONIVEL or not texto or not texto.strip():
+    if not nlp_habilitado or not texto or not texto.strip():
+        return 0.0
+    _carregar_nlp()
+    if not NLP_DISPONIVEL:
         return 0.0
 
+    # Tentar dividir por paragrafos (formato multi-linha)
     paragrafos = [p.strip() for p in texto.split("\n") if len(p.strip()) > 15]
+
+    # Se houver poucos paragrafos (formato continuo), dividir em janelas de palavras
+    if len(paragrafos) <= 1:
+        palavras = texto.split()
+        tamanho_janela = 80   # ~400 chars em portugues medio
+        passo = 60            # overlap de 20 palavras entre janelas
+        paragrafos = [
+            " ".join(palavras[i: i + tamanho_janela])
+            for i in range(0, len(palavras), passo)
+            if len(" ".join(palavras[i: i + tamanho_janela])) > 15
+        ]
+
     if not paragrafos:
         return 0.0
 
     scores = []
-    for paragrafo in paragrafos[:30]:  # máximo 30 parágrafos por ficheiro
+    for paragrafo in paragrafos[:30]:   # maximo 30 chunks por ficheiro
         try:
-            resultado = _analisador_nlp.predict(paragrafo[:500])  # trunca ao limite do modelo
+            resultado = _analisador_nlp.predict(paragrafo[:500])
             proba = resultado.probas
-            # POS - NEG → [-1, +1]; NEU não contribui para o sinal
             score = proba.get("POS", 0.0) - proba.get("NEG", 0.0)
             scores.append(score)
         except Exception:
@@ -530,7 +595,7 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
     # Cast
     df["mes"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce").dt.date
     df["valor_interesse"] = pd.to_numeric(df["valor_interesse"], errors="coerce")
-    df["valor_interesse"] = df["valor_interesse"].fillna(0).clip(0, 100).astype("Int64")
+    df["valor_interesse"] = df["valor_interesse"].fillna(0).astype(float).round().clip(0, 100).astype("Int64")
 
     # Normalização do termo → marca/modelo
     # Trends têm termos como "VW Golf usado" — usa lookup por substring, não exacto
@@ -572,25 +637,40 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
 
 def _limpar_texto_forum(texto: str) -> str:
     """
-    Remove ruído estrutural do texto bruto do fórum:
-    cabeçalhos do site, barras de navegação, paginação e linhas username|data.
-    Não assume estrutura de posts — abordagem defensiva para fonte não estruturada.
-    Devolve texto limpo pronto para NLP e extração de menções.
+    Remove ruido estrutural do texto bruto do forum.
+
+    Suporta dois formatos de input:
+    - Formato multi-linha (generate_samples.py): separado por newline - filtra linha a linha.
+    - Formato continuo (generate_forum.py): um unico bloco separado por espacos.
+      A abordagem linha-a-linha descartaria o documento inteiro quando a unica linha
+      contiver 'motorguia.net'. Em vez disso, substitui frases de ruido literais
+      e devolve o texto restante para NLP.
     """
-    linhas_limpas = []
-    for linha in texto.split("\n"):
-        linha_strip = linha.strip()
-        if not linha_strip:
-            continue
-        if _REGEX_RUIDO_FORUM.search(linha_strip):
-            continue
-        if _REGEX_CABECALHO_POST.match(linha_strip):
-            continue  # linhas "username  |  YYYY-MM" — estrutura, não conteúdo
-        linhas_limpas.append(linha_strip)
-    return "\n".join(linhas_limpas)
+    linhas = texto.split("\n")
+
+    # Formato multi-linha
+    if len(linhas) > 3:
+        linhas_limpas = []
+        for linha in linhas:
+            linha_strip = linha.strip()
+            if not linha_strip:
+                continue
+            if _REGEX_RUIDO_FORUM.search(linha_strip):
+                continue
+            if _REGEX_CABECALHO_POST.match(linha_strip):
+                continue
+            linhas_limpas.append(linha_strip)
+        return "\n".join(linhas_limpas)
+
+    # Formato continuo (bloco unico sem newlines)
+    texto_limpo = texto
+    for frase in _RUIDO_LITERAIS_FORUM:
+        texto_limpo = texto_limpo.replace(frase, " ")
+    texto_limpo = _REGEX_METADATA_UTILIZADOR.sub(" ", texto_limpo)
+    return re.sub(r"\s+", " ", texto_limpo).strip()
 
 
-def silver_forum(source_files: list[str] | None = None, engine=None):
+def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilitado: bool = True):
     """
     Processa os ficheiros TXT do fórum do Bronze para o Silver.
 
@@ -651,7 +731,7 @@ def silver_forum(source_files: list[str] | None = None, engine=None):
         n_mencoes = len(marcas) + len(modelos)
 
         # Análise de sentimento
-        score_sentimento = _analisar_sentimento(texto_limpo)
+        score_sentimento = _analisar_sentimento(texto_limpo, nlp_habilitado=nlp_habilitado)
 
         # Quarentena: sem menções E sentimento neutro sem extração (provável texto inútil)
         if n_mencoes == 0 and score_sentimento == 0.0:
@@ -823,6 +903,7 @@ def run_silver(
     ficheiros_trends:     list[str] | None = None,
     ficheiros_forum:      list[str] | None = None,
     ficheiros_hashtags:   list[str] | None = None,
+    nlp_habilitado:       bool = True,
 ):
     """
     Corre a pipeline Silver para as 4 fontes.
@@ -837,20 +918,51 @@ def run_silver(
     print("  SILVER PIPELINE")
     print("=" * 60)
 
-    # Tentar criar ligação ao PostgreSQL (dicionário + data_quality_log)
+    # Tentar criar ligacao ao PostgreSQL (dicionario + data_quality_log)
+    # Pre-check TCP rapido para nao ficar pendurado se o Docker nao estiver a correr
+    pg_disponivel = False
     try:
-        pg_engine = create_engine(DW_URL, echo=False)
-        with pg_engine.connect():
-            pass  # teste de conectividade
-        print("  PostgreSQL: ligação estabelecida.")
-    except Exception as e:
-        print(f"  AVISO: PostgreSQL indisponível ({e}). Dicionário e quality log desativados.")
-        pg_engine = None
+        with socket.create_connection(("localhost", 5432), timeout=3.0):
+            pg_disponivel = True
+    except (OSError, ConnectionRefusedError):
+        pass
 
+    if not pg_disponivel:
+        print("  AVISO: PostgreSQL nao acessivel na porta 5432. Dicionario e quality log desativados.")
+        pg_engine = None
+    else:
+        try:
+            pg_engine = create_engine(DW_URL, echo=False, connect_args={"connect_timeout": 5})
+            with pg_engine.connect():
+                pass  # teste de conectividade
+            print("  PostgreSQL: ligacao estabelecida.")
+        except Exception as e:
+            print(f"  AVISO: PostgreSQL indisponivel ({e}). Dicionario e quality log desativados.")
+            pg_engine = None
+
+    t0 = time.time()
+    if not nlp_habilitado:
+        _log("NLP desabilitado (--no-nlp). Score sentimento = 0.0 para todos os ficheiros de forum.", "WARN")
+
+    _log("Iniciando silver_inventario...")
     silver_inventario(ficheiros_inventario, pg_engine)
+    _log(f"silver_inventario concluido em {time.time()-t0:.1f}s")
+
+    t1 = time.time()
+    _log("Iniciando silver_trends...")
     silver_trends(ficheiros_trends, pg_engine)
-    silver_forum(ficheiros_forum, pg_engine)
+    _log(f"silver_trends concluido em {time.time()-t1:.1f}s")
+
+    t2 = time.time()
+    _log(f"Iniciando silver_forum (NLP={'activo' if nlp_habilitado else 'desabilitado'})...")
+    silver_forum(ficheiros_forum, pg_engine, nlp_habilitado=nlp_habilitado)
+    _log(f"silver_forum concluido em {time.time()-t2:.1f}s")
+
+    t3 = time.time()
+    _log("Iniciando silver_hashtags...")
     silver_hashtags(ficheiros_hashtags, pg_engine)
+    _log(f"silver_hashtags concluido em {time.time()-t3:.1f}s")
+    _log(f"Silver total: {time.time()-t0:.1f}s")
 
     if pg_engine:
         pg_engine.dispose()
