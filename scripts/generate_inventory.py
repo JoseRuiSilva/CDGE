@@ -33,8 +33,12 @@ COLUMNS=[
     "data_entrada_stock",
     "preco_venda",
     "data_venda",
+    "nif_cliente",
     "stand",
 ]
+
+CLIENTES_CSV = BASE_DIR / "data" / "sources" / "clientes" / "clientes_ativos.csv"
+
 
 STANDS=["lisboa","porto","braga"]
 
@@ -240,12 +244,27 @@ def inject_quality_issue(rng:random.Random,row:dict[str,object])->dict[str,objec
         broken["tipo_automovel"]=f"{str(broken['tipo_automovel']).lower()}"
     return broken
 
+def load_nifs() -> list[str]:
+    if not CLIENTES_CSV.exists():
+        return []
+    nifs = []
+    with CLIENTES_CSV.open("r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            nifs.append(row["nif"])
+    return nifs
+
 def generate_inventory()->dict[str,int]:
     rng=random.Random(SEED)
     OUTPUT_ROOT.mkdir(parents=True,exist_ok=True)
     used_plates:set[str]=set()
     vehicle_counter=1
     counts:dict[str,int]={}
+    
+    nifs_disponiveis = load_nifs()
+    if not nifs_disponiveis:
+        print("AVISO: clientes_ativos.csv não encontrado. Os NIFs ficarão vazios.")
+
 
     for stand in STANDS:
         stand_dir=OUTPUT_ROOT/stand
@@ -324,6 +343,7 @@ def generate_inventory()->dict[str,int]:
                         "data_entrada_stock": car["data_entrada_stock"],
                         "preco_venda": car["preco_venda_target"] if is_sold_this_month else "",
                         "data_venda": car["data_venda_target"].isoformat() if is_sold_this_month else "",
+                        "nif_cliente": rng.choice(nifs_disponiveis) if is_sold_this_month and nifs_disponiveis else "",
                         "stand": car["stand"]
                     }
                     

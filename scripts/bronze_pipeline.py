@@ -19,6 +19,8 @@ STANDS_DIR    = BASE_DIR / "data/sources/stands"
 TRENDS_DIR    = BASE_DIR / "data/sources/trends"        # YYYY/MM/trends_YYYYMM.json
 FORUM_DIR     = BASE_DIR / "data/sources/forum"         # YYYY/MM/forum_YYYYMM.txt
 HASHTAGS_DIR  = BASE_DIR / "data/sources/hashtags"      # YYYY/WNN/hashtags_YYYYWNN.xml
+CLIENTES_DIR  = BASE_DIR / "data/sources/clientes"
+DEMOGRAFIA_DIR = BASE_DIR / "data/sources/demografia"
 
 # 3. Caminhos de Escrita (Data Lake - Bronze)
 # Convertidos para string nativa porque o write_deltalake por vezes lida melhor com strings
@@ -26,6 +28,8 @@ BRONZE_INVENTARIO = str(BASE_DIR / "data_lake/bronze/inventario_delta")
 BRONZE_TRENDS     = str(BASE_DIR / "data_lake/bronze/trends_delta")
 BRONZE_FORUM      = str(BASE_DIR / "data_lake/bronze/forum_delta")
 BRONZE_HASHTAGS   = str(BASE_DIR / "data_lake/bronze/hashtags_delta")
+BRONZE_CLIENTES   = str(BASE_DIR / "data_lake/bronze/clientes_delta")
+BRONZE_DEMOGRAFIA = str(BASE_DIR / "data_lake/bronze/demografia_delta")
 
 # Namespace do XML Atom Feed de hashtags (Talkwalker/Mention)
 NS_SL = {"sl": "http://autoescala.pt/social-listening"}
@@ -375,6 +379,71 @@ def ingerir_hashtags(ficheiros: list = None):
         escrever_bronze(pd.concat(dataframes, ignore_index=True), BRONZE_HASHTAGS)
 
 
+def ingerir_clientes(ficheiros: list = None):
+    """Lê os CSVs de clientes e escreve no Bronze."""
+    print("\n[Bronze] Clientes")
+    if ficheiros is None:
+        ficheiros = sorted(CLIENTES_DIR.rglob("*.csv"))
+    if not ficheiros:
+        print(f"  Nenhum ficheiro encontrado em {CLIENTES_DIR} — a saltar.")
+        return
+    
+    ja_ingeridos = ficheiros_ja_ingeridos(BRONZE_CLIENTES)
+    dataframes = []
+
+    for filepath in ficheiros:
+        if filepath.name in ja_ingeridos:
+            if os.environ.get("AE_VERBOSE", "info") == "debug":
+                print(f"  SKIP  {filepath.name} — já ingerido.")
+            continue
+        
+        df = pd.read_csv(filepath, dtype=str)
+        df = normalizar_colunas(df)
+        df["ingestion_timestamp"] = timestamp_agora()
+        df["source_file"] = filepath.name
+        df = converter_para_string(df)
+        dataframes.append(df)
+        
+        if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
+            print(f"  {filepath.name} → {len(df)} registos")
+            
+    if dataframes:
+        escrever_bronze(pd.concat(dataframes, ignore_index=True), BRONZE_CLIENTES)
+
+
+def ingerir_demografia(ficheiros: list = None):
+    """Lê os CSVs de demografia e escreve no Bronze."""
+    print("\n[Bronze] Demografia Regional")
+    if ficheiros is None:
+        ficheiros = sorted(DEMOGRAFIA_DIR.rglob("*.csv"))
+    if not ficheiros:
+        print(f"  Nenhum ficheiro encontrado em {DEMOGRAFIA_DIR} — a saltar.")
+        return
+    
+    ja_ingeridos = ficheiros_ja_ingeridos(BRONZE_DEMOGRAFIA)
+    dataframes = []
+
+    for filepath in ficheiros:
+        if filepath.name in ja_ingeridos:
+            if os.environ.get("AE_VERBOSE", "info") == "debug":
+                print(f"  SKIP  {filepath.name} — já ingerido.")
+            continue
+            
+        df = pd.read_csv(filepath, dtype=str)
+        df = normalizar_colunas(df)
+        df["ingestion_timestamp"] = timestamp_agora()
+        df["source_file"] = filepath.name
+        df = converter_para_string(df)
+        dataframes.append(df)
+        
+        if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
+            print(f"  {filepath.name} → {len(df)} registos")
+            
+    if dataframes:
+        escrever_bronze(pd.concat(dataframes, ignore_index=True), BRONZE_DEMOGRAFIA)
+
+
+
 # ─── PONTO DE ENTRADA ─────────────────────────────────────────────────────────
 
 def run_bronze(
@@ -382,9 +451,11 @@ def run_bronze(
     ficheiros_trends=None,
     ficheiros_forum=None,
     ficheiros_hashtags=None,
+    ficheiros_clientes=None,
+    ficheiros_demografia=None,
 ):
     """
-    Corre a pipeline Bronze para as 4 fontes.
+    Corre a pipeline Bronze para as fontes.
     Se um argumento for None, descobre automaticamente todos os ficheiros disponíveis.
     Se for uma lista, processa apenas esses (modo incremental via main.py).
     """
@@ -399,6 +470,8 @@ def run_bronze(
     ingerir_trends(ficheiros_trends)
     ingerir_forum(ficheiros_forum)
     ingerir_hashtags(ficheiros_hashtags)
+    ingerir_clientes(ficheiros_clientes)
+    ingerir_demografia(ficheiros_demografia)
 
     print("\n  Bronze concluído.")
     print("=" * 60)

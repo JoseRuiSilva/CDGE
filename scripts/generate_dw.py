@@ -86,6 +86,32 @@ CREATE TABLE dim_dicionario_veiculo (
     UNIQUE (campo, valor_original)
 );
 
+CREATE TABLE dim_cliente (
+    cliente_key SERIAL PRIMARY KEY,
+    nif VARCHAR(20) UNIQUE,
+    nome VARCHAR(100),
+    idade INTEGER,
+    faixa_etaria VARCHAR(20),
+    genero VARCHAR(20),
+    distrito VARCHAR(100),
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dim_demografia_regional (
+    demografia_key SERIAL PRIMARY KEY,
+    distrito VARCHAR(100) NOT NULL,
+    ano_referencia INTEGER NOT NULL,
+    populacao_total INTEGER,
+    pct_18_24 NUMERIC(5,2),
+    pct_25_34 NUMERIC(5,2),
+    pct_35_49 NUMERIC(5,2),
+    pct_50_64 NUMERIC(5,2),
+    pct_65_mais NUMERIC(5,2),
+    pct_masculino NUMERIC(5,2),
+    pct_feminino NUMERIC(5,2),
+    UNIQUE (distrito, ano_referencia)
+);
+
 -- =========================
 -- FACTOS
 -- =========================
@@ -96,6 +122,7 @@ CREATE TABLE fct_venda (
     stand_key INTEGER NOT NULL REFERENCES dim_stand(stand_key),
     tempo_entrada_key INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
     tempo_venda_key INTEGER REFERENCES dim_tempo(tempo_key),
+    cliente_key INTEGER REFERENCES dim_cliente(cliente_key),
     quilometragem INTEGER,
     preco_aquisicao NUMERIC(12,2),
     preco_venda NUMERIC(12,2),
@@ -211,6 +238,27 @@ CREATE TRIGGER trg_audit_dim_modelo
 CREATE TRIGGER trg_audit_dim_veiculo
     AFTER UPDATE OR DELETE ON dim_veiculo
     FOR EACH ROW EXECUTE FUNCTION log_dimension_changes();
+
+CREATE TRIGGER trg_audit_dim_cliente
+    AFTER UPDATE OR DELETE ON dim_cliente
+    FOR EACH ROW EXECUTE FUNCTION log_dimension_changes();
+
+-- =========================
+-- VIEWS
+-- =========================
+
+CREATE VIEW vw_recomendacao_alocacao_stock AS
+SELECT
+    ds.nome_stand, ds.distrito,
+    dm.marca, dm.modelo,
+    ft.crescimento_mom_pct, ft.previsao_prox_mes,
+    dr.pct_25_34 AS proporcao_jovens_stand,
+    dr.pct_feminino AS proporcao_feminina_stand
+FROM fct_tendencia ft
+JOIN dim_modelo dm ON ft.modelo_key = dm.modelo_key
+JOIN dim_stand ds ON 1=1 
+JOIN dim_demografia_regional dr ON ds.distrito = dr.distrito
+WHERE ft.previsao_prox_mes > 0;
 
 -- =========================
 -- ÍNDICES

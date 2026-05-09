@@ -34,6 +34,8 @@ SILVER_INVENTARIO = str(BASE_DIR / "data_lake/silver/inventario_delta")
 SILVER_TRENDS     = str(BASE_DIR / "data_lake/silver/trends_delta")
 SILVER_FORUM      = str(BASE_DIR / "data_lake/silver/forum_delta")
 SILVER_HASHTAGS   = str(BASE_DIR / "data_lake/silver/hashtags_delta")
+SILVER_CLIENTES   = str(BASE_DIR / "data_lake/silver/clientes_delta")
+SILVER_DEMOGRAFIA = str(BASE_DIR / "data_lake/silver/demografia_delta")
 
 _PG_HOST  = __import__("os").environ.get("PG_HOST", "localhost")
 _PG_PORT  = __import__("os").environ.get("PG_PORT", "5432")
@@ -76,6 +78,8 @@ def run_load_to_postgres():
     df_trends = _ler_silver(SILVER_TRENDS)
     df_forum  = _ler_silver(SILVER_FORUM)
     df_hash   = _ler_silver(SILVER_HASHTAGS)
+    df_cli    = _ler_silver(SILVER_CLIENTES)
+    df_demo   = _ler_silver(SILVER_DEMOGRAFIA)
 
     with engine.begin() as conn:
 
@@ -280,6 +284,53 @@ def run_load_to_postgres():
             )
 
         # ======================================================================
+        # DIM_CLIENTE
+        # ======================================================================
+        print("  A processar dim_cliente...")
+        if not df_cli.empty:
+            dim_cli = df_cli.drop_duplicates(subset=["nif"]).copy()
+            conn.execute(
+                text(f"""
+                    INSERT INTO {DW_SCHEMA}.dim_cliente
+                        (nif, nome, idade, faixa_etaria, genero, distrito)
+                    VALUES (:nif, :nome, :idade, :faixa_etaria, :genero, :distrito)
+                    ON CONFLICT (nif) DO UPDATE SET
+                        nome = EXCLUDED.nome,
+                        idade = EXCLUDED.idade,
+                        faixa_etaria = EXCLUDED.faixa_etaria,
+                        genero = EXCLUDED.genero,
+                        distrito = EXCLUDED.distrito
+                """),
+                dim_cli.replace({np.nan: None}).to_dict(orient="records"),
+            )
+
+        # ======================================================================
+        # DIM_DEMOGRAFIA_REGIONAL
+        # ======================================================================
+        print("  A processar dim_demografia_regional...")
+        if not df_demo.empty:
+            dim_demo = df_demo.drop_duplicates(subset=["distrito", "ano_referencia"]).copy()
+            conn.execute(
+                text(f"""
+                    INSERT INTO {DW_SCHEMA}.dim_demografia_regional
+                        (distrito, ano_referencia, populacao_total, pct_18_24, pct_25_34,
+                         pct_35_49, pct_50_64, pct_65_mais, pct_masculino, pct_feminino)
+                    VALUES (:distrito, :ano_referencia, :populacao_total, :pct_18_24, :pct_25_34,
+                            :pct_35_49, :pct_50_64, :pct_65_mais, :pct_masculino, :pct_feminino)
+                    ON CONFLICT (distrito, ano_referencia) DO UPDATE SET
+                        populacao_total = EXCLUDED.populacao_total,
+                        pct_18_24 = EXCLUDED.pct_18_24,
+                        pct_25_34 = EXCLUDED.pct_25_34,
+                        pct_35_49 = EXCLUDED.pct_35_49,
+                        pct_50_64 = EXCLUDED.pct_50_64,
+                        pct_65_mais = EXCLUDED.pct_65_mais,
+                        pct_masculino = EXCLUDED.pct_masculino,
+                        pct_feminino = EXCLUDED.pct_feminino
+                """),
+                dim_demo.replace({np.nan: None}).to_dict(orient="records"),
+            )
+
+        # ======================================================================
         # MAPAS DE SURROGATE KEYS
         # ======================================================================
         map_tempo   = pd.read_sql(f"SELECT tempo_key, data FROM {DW_SCHEMA}.dim_tempo",   conn)
@@ -289,6 +340,7 @@ def run_load_to_postgres():
         map_veiculo = pd.read_sql(f"SELECT veiculo_key, id_viatura FROM {DW_SCHEMA}.dim_veiculo", conn)
         map_modelo  = pd.read_sql(f"SELECT modelo_key, marca, modelo FROM {DW_SCHEMA}.dim_modelo", conn)
         map_hashtag = pd.read_sql(f"SELECT hashtag_key, hashtag FROM {DW_SCHEMA}.dim_hashtag", conn)
+        map_cliente = pd.read_sql(f"SELECT cliente_key, nif FROM {DW_SCHEMA}.dim_cliente", conn)
 
         def get_fonte_key(nome):
             res = map_fonte[map_fonte["nome_fonte"] == nome]
@@ -329,6 +381,11 @@ def run_load_to_postgres():
                 map_tempo.rename(columns={"data": "data_venda", "tempo_key": "tempo_venda_key"}),
                 on="data_venda", how="left",
             )
+            
+            if "nif_cliente" in fct.columns:
+                fct = fct.merge(map_cliente.rename(columns={"nif": "nif_cliente"}), on="nif_cliente", how="left")
+            else:
+                fct["cliente_key"] = None
 
             # Calcular campos derivados que o Silver nao tem
             fct["margem"] = None
@@ -345,7 +402,7 @@ def run_load_to_postgres():
 
             fct["vendido"] = fct["data_venda"].notna()
 
-            cols = ["veiculo_key", "stand_key", "tempo_entrada_key", "tempo_venda_key",
+            cols = ["veiculo_key", "stand_key", "tempo_entrada_key", "tempo_venda_key", "cliente_key",
                     "quilometragem", "preco_aquisicao", "preco_venda",
                     "margem", "dias_em_stock", "vendido"]
             fct = fct[cols].dropna(subset=["veiculo_key", "stand_key", "tempo_entrada_key"])
@@ -354,15 +411,16 @@ def run_load_to_postgres():
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.fct_venda
-                        (veiculo_key, stand_key, tempo_entrada_key, tempo_venda_key,
+                        (veiculo_key, stand_key, tempo_entrada_key, tempo_venda_key, cliente_key,
                          quilometragem, preco_aquisicao, preco_venda,
                          margem, dias_em_stock, vendido)
                     VALUES
-                        (:veiculo_key, :stand_key, :tempo_entrada_key, :tempo_venda_key,
+                        (:veiculo_key, :stand_key, :tempo_entrada_key, :tempo_venda_key, :cliente_key,
                          :quilometragem, :preco_aquisicao, :preco_venda,
                          :margem, :dias_em_stock, :vendido)
                     ON CONFLICT (veiculo_key, stand_key, tempo_entrada_key) DO UPDATE SET
                         tempo_venda_key = EXCLUDED.tempo_venda_key,
+                        cliente_key     = EXCLUDED.cliente_key,
                         quilometragem   = EXCLUDED.quilometragem,
                         preco_venda     = EXCLUDED.preco_venda,
                         margem          = EXCLUDED.margem,
@@ -534,7 +592,7 @@ def run_load_to_postgres():
                     )
                     INSERT INTO {DW_SCHEMA}.fct_inventario_mensal
                         (tempo_key, stand_key, veiculo_key, valor_em_stock, dias_em_parque)
-                    SELECT
+                    SELECT DISTINCT ON (mk.tempo_key, v.stand_key, v.veiculo_key)
                         mk.tempo_key,
                         v.stand_key,
                         v.veiculo_key,
@@ -548,6 +606,7 @@ def run_load_to_postgres():
                     WHERE
                         t_entrada.data <= mk.data_fim_mes
                         AND (t_venda.data IS NULL OR t_venda.data > mk.data_fim_mes)
+                    ORDER BY mk.tempo_key, v.stand_key, v.veiculo_key, t_entrada.data DESC
                     ON CONFLICT (tempo_key, stand_key, veiculo_key) DO UPDATE SET
                         valor_em_stock = EXCLUDED.valor_em_stock,
                         dias_em_parque = EXCLUDED.dias_em_parque

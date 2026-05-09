@@ -3,9 +3,9 @@ silver_pipeline.py — Camada Silver | Projeto Auto Escala
 =========================================================
 Lê dados brutos do Bronze (Delta Lake), aplica limpeza, tipagem,
 normalização via dicionário PostgreSQL e NLP de sentimento (fórum).
-Registos inválidos → Delta de quarentena por fonte.
-Métricas de qualidade → tabela data_quality_log no PostgreSQL.
-Dados limpos → Silver (Delta Lake, MERGE/UPSERT por Business Key).
+Registos inválidos -> Delta de quarentena por fonte.
+Métricas de qualidade -> tabela data_quality_log no PostgreSQL.
+Dados limpos -> Silver (Delta Lake, MERGE/UPSERT por Business Key).
 
 Fontes: inventário (CSV), Google Trends (JSON), fórum (TXT), hashtags (XML).
 Decisões de desenho: ver contexto_auto_escala_llm.txt e diálogos de decisão.
@@ -72,18 +72,24 @@ BRONZE_INVENTARIO = str(BASE_DIR / "data_lake/bronze/inventario_delta")
 BRONZE_TRENDS     = str(BASE_DIR / "data_lake/bronze/trends_delta")
 BRONZE_FORUM      = str(BASE_DIR / "data_lake/bronze/forum_delta")
 BRONZE_HASHTAGS   = str(BASE_DIR / "data_lake/bronze/hashtags_delta")
+BRONZE_CLIENTES   = str(BASE_DIR / "data_lake/bronze/clientes_delta")
+BRONZE_DEMOGRAFIA = str(BASE_DIR / "data_lake/bronze/demografia_delta")
 
 # Caminhos Silver (escrita via MERGE)
 SILVER_INVENTARIO = str(BASE_DIR / "data_lake/silver/inventario_delta")
 SILVER_TRENDS     = str(BASE_DIR / "data_lake/silver/trends_delta")
 SILVER_FORUM      = str(BASE_DIR / "data_lake/silver/forum_delta")
 SILVER_HASHTAGS   = str(BASE_DIR / "data_lake/silver/hashtags_delta")
+SILVER_CLIENTES   = str(BASE_DIR / "data_lake/silver/clientes_delta")
+SILVER_DEMOGRAFIA = str(BASE_DIR / "data_lake/silver/demografia_delta")
 
 # Caminhos Quarentena (append — registos rejeitados)
 QUARENTENA_INVENTARIO = str(BASE_DIR / "data_lake/quarantine/inventario_delta")
 QUARENTENA_TRENDS     = str(BASE_DIR / "data_lake/quarantine/trends_delta")
 QUARENTENA_FORUM      = str(BASE_DIR / "data_lake/quarantine/forum_delta")
 QUARENTENA_HASHTAGS   = str(BASE_DIR / "data_lake/quarantine/hashtags_delta")
+QUARENTENA_CLIENTES   = str(BASE_DIR / "data_lake/quarantine/clientes_delta")
+QUARENTENA_DEMOGRAFIA = str(BASE_DIR / "data_lake/quarantine/demografia_delta")
 
 # PostgreSQL -- dicionario de normalizacao e data_quality_log
 _PG_HOST  = __import__("os").environ.get("PG_HOST", "localhost")
@@ -324,7 +330,7 @@ def _escrever_quarentena(registos: list[dict], delta_path: str):
     except Exception:
         Path(delta_path).mkdir(parents=True, exist_ok=True)
         write_deltalake(delta_path, tabela, mode="overwrite", schema_mode="merge")
-    print(f"    Quarentena → {len(registos)} registos  [{delta_path}]")
+    print(f"    Quarentena -> {len(registos)} registos  [{delta_path}]")
 
 
 # ─── DATA QUALITY LOG ─────────────────────────────────────────────────────────
@@ -355,7 +361,7 @@ def _registar_qualidade(engine, fonte: str, total: int, ok: int, quarentena: int
                     "notas":    notas,
                 },
             )
-        print(f"    Quality log → {ok} ok  |  {quarentena} quarentena  ({taxa}%)  [{fonte}]")
+        print(f"    Quality log -> {ok} ok  |  {quarentena} quarentena  ({taxa}%)  [{fonte}]")
     except Exception as e:
         print(f"    AVISO: data_quality_log indisponível ({e}).")
 
@@ -396,12 +402,12 @@ def _merge_silver(df: pd.DataFrame, delta_path: str, bk_cols: list[str]):
             .when_not_matched_insert_all()
             .execute()
         )
-        print(f"    MERGE → {len(df)} registos  [{delta_path}]")
+        print(f"    MERGE -> {len(df)} registos  [{delta_path}]")
     else:
         # Primeira vez — cria a tabela com overwrite
         Path(delta_path).mkdir(parents=True, exist_ok=True)
         write_deltalake(delta_path, tabela, mode="overwrite", schema_mode="merge")
-        print(f"    CRIADA → {len(df)} registos  [{delta_path}]")
+        print(f"    CRIADA -> {len(df)} registos  [{delta_path}]")
 
 
 # ─── SILVER: INVENTÁRIO ───────────────────────────────────────────────────────
@@ -411,8 +417,8 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
     Transforma os dados de inventário do Bronze para o Silver.
 
     Transformações aplicadas:
-      - Trim + normalização de nulos textuais → NA real
-      - Cast: datas → datetime UTC, preços → float, km → int
+      - Trim + normalização de nulos textuais -> NA real
+      - Cast: datas -> datetime UTC, preços -> float, km -> int
       - Normalização de marca e modelo via dicionário PostgreSQL
       - Quarentena: matricula nula, cast irrecuperável, marca/modelo não reconhecida,
                     km negativo, data_venda < data_entrada_stock
@@ -459,7 +465,7 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
 
     if "quilometragem" in df.columns:
         # Guardar máscara de valores originalmente não-nulos antes do cast
-        # para detetar "85000 km" → NULL (INVALID_TYPE) vs genuinamente ausente
+        # para detetar "85000 km" -> NULL (INVALID_TYPE) vs genuinamente ausente
         _km_tinha_valor = df["quilometragem"].notna()
         df["quilometragem"] = _cast_seguro(df["quilometragem"], "int")
         mask_km_invalido = _km_tinha_valor & df["quilometragem"].isna()
@@ -556,7 +562,7 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
     Transforma os dados de Google Trends do Bronze para o Silver.
 
     Transformações aplicadas:
-      - Cast: valor_interesse → int (nulo → 0); mes → date
+      - Cast: valor_interesse -> int (nulo -> 0); mes -> date
       - Normalização de termo para marca/modelo via dicionário
       - Quarentena: BK nula (termo, mes, regiao), valor_interesse fora de [0, 100]
 
@@ -593,7 +599,7 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
     df["valor_interesse"] = pd.to_numeric(df["valor_interesse"], errors="coerce")
     df["valor_interesse"] = df["valor_interesse"].fillna(0).astype(float).round().clip(0, 100).astype("Int64")
 
-    # Normalização do termo → marca/modelo
+    # Normalização do termo -> marca/modelo
     # Trends têm termos como "VW Golf usado" — usa lookup por substring, não exacto
     lookup_results = df["termo"].apply(lambda v: _lookup_trends(v, dicionario_map))
     df["marca_normalizada"]  = lookup_results.apply(lambda t: t[0])
@@ -753,7 +759,7 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
             "n_chars_texto_limpo": len(texto_limpo),
         })
 
-        print(f"  {source_file} → marcas={marcas} modelos={modelos} sentimento={score_sentimento}")
+        print(f"  {source_file} -> marcas={marcas} modelos={modelos} sentimento={score_sentimento}")
 
     total = len(df_bronze)
     n_quarentena = len(quarentena_registos)
@@ -782,7 +788,7 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
     Transforma os dados de hashtags do Bronze para o Silver.
 
     Transformações aplicadas:
-      - Cast: total_posts e colunas de plataforma → int
+      - Cast: total_posts e colunas de plataforma -> int
       - Cálculo de variacao_semanal: % variação face à semana anterior (LAG por hashtag)
         Calculado sobre histórico Silver completo + novos registos Bronze
       - Extração de modelo a partir do nome da hashtag via dicionário (regex substring)
@@ -837,7 +843,7 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
 
     df_ok = df[~(bk_nula | posts_invalidos)].copy()
 
-    # Extração de modelo a partir da hashtag (ex: "#volkswagengolf" → "Golf")
+    # Extração de modelo a partir da hashtag (ex: "#volkswagengolf" -> "Golf")
     # Remove o '#' e faz lookup no campo 'hashtag' do dicionário
     def _modelo_de_hashtag(hashtag: str) -> str | None:
         """
@@ -908,6 +914,131 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
     print(f"  Hashtags Silver concluído  [{n_ok} ok | {n_quarentena} quarentena]")
 
 
+# ─── SILVER: CLIENTES ─────────────────────────────────────────────────────────
+
+def silver_clientes(source_files: list[str] | None = None, engine=None):
+    """
+    Transforma os dados de clientes do Bronze para o Silver.
+    BK: nif
+    """
+    print("\n[Silver] Clientes")
+    inicio = time.time()
+    try:
+        dt_bronze = DeltaTable(BRONZE_CLIENTES)
+    except Exception:
+        print(f"  Bronze não encontrado em {BRONZE_CLIENTES} — a saltar.")
+        return
+
+    df_bronze = dt_bronze.to_pandas()
+    if source_files is not None:
+        nomes = {Path(f).name for f in source_files}
+        df_bronze = df_bronze[df_bronze["source_file"].isin(nomes)]
+    if df_bronze.empty:
+        print("  Nenhum registo novo no Bronze — a saltar.")
+        return
+
+    df = _normalizar_nulos(df_bronze.copy())
+    
+    # Cast idade
+    df["idade"] = _cast_seguro(df["idade"], "int")
+    
+    # Calcular faixa etaria
+    def calcular_faixa(idade):
+        if pd.isna(idade): return "Desconhecido"
+        if idade < 25: return "18-24"
+        if idade < 35: return "25-34"
+        if idade < 50: return "35-49"
+        if idade < 65: return "50-64"
+        return "65+"
+        
+    df["faixa_etaria"] = df["idade"].apply(calcular_faixa)
+
+    # Quarentena: BK nula
+    quarentena_registos = []
+    bk_nula = df["nif"].isna()
+    
+    for _, row in df[bk_nula].iterrows():
+        quarentena_registos.append({
+            "fonte": "clientes", "source_file": row.get("source_file", ""),
+            "regra_violada": "NULL_BK", "campo_problema": "nif",
+            "valor_encontrado": str(row.get("nif")), "registo_raw": row.to_dict(),
+        })
+
+    df_ok = df[~bk_nula].copy()
+    for col in df_ok.select_dtypes(include="object").columns:
+        df_ok[col] = df_ok[col].astype("string")
+
+    total, n_quarentena, n_ok = len(df), len(quarentena_registos), len(df_ok)
+    _escrever_quarentena(quarentena_registos, QUARENTENA_CLIENTES)
+    
+    if not df_ok.empty:
+        df_ok = df_ok.drop_duplicates(subset=["nif"], keep="last")
+        _merge_silver(df_ok, SILVER_CLIENTES, bk_cols=["nif"])
+
+    if engine:
+        _registar_qualidade(engine, "clientes", total, n_ok, n_quarentena, f"Duração: {round(time.time()-inicio, 1)}s")
+    print(f"  Clientes Silver concluído  [{n_ok} ok | {n_quarentena} quarentena]")
+
+
+# ─── SILVER: DEMOGRAFIA ───────────────────────────────────────────────────────
+
+def silver_demografia(source_files: list[str] | None = None, engine=None):
+    """
+    Transforma os dados de demografia do Bronze para o Silver.
+    BK: distrito + ano_referencia
+    """
+    print("\n[Silver] Demografia Regional")
+    inicio = time.time()
+    try:
+        dt_bronze = DeltaTable(BRONZE_DEMOGRAFIA)
+    except Exception:
+        print(f"  Bronze não encontrado em {BRONZE_DEMOGRAFIA} — a saltar.")
+        return
+
+    df_bronze = dt_bronze.to_pandas()
+    if source_files is not None:
+        nomes = {Path(f).name for f in source_files}
+        df_bronze = df_bronze[df_bronze["source_file"].isin(nomes)]
+    if df_bronze.empty:
+        print("  Nenhum registo novo no Bronze — a saltar.")
+        return
+
+    df = _normalizar_nulos(df_bronze.copy())
+    
+    # Cast
+    df["ano_referencia"] = _cast_seguro(df["ano_referencia"], "int")
+    df["populacao_total"] = _cast_seguro(df["populacao_total"], "int")
+    for pct in ["pct_18_24", "pct_25_34", "pct_35_49", "pct_50_64", "pct_65_mais", "pct_masculino", "pct_feminino"]:
+        if pct in df.columns:
+            df[pct] = _cast_seguro(df[pct], "float")
+
+    # Quarentena: BK nula
+    quarentena_registos = []
+    bk_nula = df["distrito"].isna() | df["ano_referencia"].isna()
+    
+    for _, row in df[bk_nula].iterrows():
+        quarentena_registos.append({
+            "fonte": "demografia", "source_file": row.get("source_file", ""),
+            "regra_violada": "NULL_BK", "campo_problema": "distrito|ano_referencia",
+            "valor_encontrado": f"{row.get('distrito')}|{row.get('ano_referencia')}", "registo_raw": row.to_dict(),
+        })
+
+    df_ok = df[~bk_nula].copy()
+    for col in df_ok.select_dtypes(include="object").columns:
+        df_ok[col] = df_ok[col].astype("string")
+
+    total, n_quarentena, n_ok = len(df), len(quarentena_registos), len(df_ok)
+    _escrever_quarentena(quarentena_registos, QUARENTENA_DEMOGRAFIA)
+    
+    if not df_ok.empty:
+        df_ok = df_ok.drop_duplicates(subset=["distrito", "ano_referencia"], keep="last")
+        _merge_silver(df_ok, SILVER_DEMOGRAFIA, bk_cols=["distrito", "ano_referencia"])
+
+    if engine:
+        _registar_qualidade(engine, "demografia", total, n_ok, n_quarentena, f"Duração: {round(time.time()-inicio, 1)}s")
+    print(f"  Demografia Silver concluído  [{n_ok} ok | {n_quarentena} quarentena]")
+
+
 # ─── PONTO DE ENTRADA ─────────────────────────────────────────────────────────
 
 def run_silver(
@@ -915,6 +1046,8 @@ def run_silver(
     ficheiros_trends:     list[str] | None = None,
     ficheiros_forum:      list[str] | None = None,
     ficheiros_hashtags:   list[str] | None = None,
+    ficheiros_clientes:   list[str] | None = None,
+    ficheiros_demografia: list[str] | None = None,
     nlp_habilitado:       bool = True,
 ):
     """
@@ -974,6 +1107,17 @@ def run_silver(
     _log("Iniciando silver_hashtags...")
     silver_hashtags(ficheiros_hashtags, pg_engine)
     _log(f"silver_hashtags concluido em {time.time()-t3:.1f}s")
+    
+    t4 = time.time()
+    _log("Iniciando silver_clientes...")
+    silver_clientes(ficheiros_clientes, pg_engine)
+    _log(f"silver_clientes concluido em {time.time()-t4:.1f}s")
+    
+    t5 = time.time()
+    _log("Iniciando silver_demografia...")
+    silver_demografia(ficheiros_demografia, pg_engine)
+    _log(f"silver_demografia concluido em {time.time()-t5:.1f}s")
+    
     _log(f"Silver total: {time.time()-t0:.1f}s")
 
     if pg_engine:

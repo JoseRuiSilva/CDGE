@@ -71,12 +71,14 @@ DW_SCHEMA = "auto_escala_dw"
 FULL_LOAD_LIMITE = date(2023, 12, 31)
 
 # Raízes das fontes (espelham o que está no bronze_pipeline.py)
-STANDS_DIR   = BASE_DIR / "data/sources/stands"
-TRENDS_DIR   = BASE_DIR / "data/sources/trends"
-FORUM_DIR    = BASE_DIR / "data/sources/forum"
-HASHTAGS_DIR = BASE_DIR / "data/sources/hashtags"
+STANDS_DIR     = BASE_DIR / "data/sources/stands"
+TRENDS_DIR     = BASE_DIR / "data/sources/trends"
+FORUM_DIR      = BASE_DIR / "data/sources/forum"
+HASHTAGS_DIR   = BASE_DIR / "data/sources/hashtags"
+CLIENTES_DIR   = BASE_DIR / "data/sources/clientes"
+DEMOGRAFIA_DIR = BASE_DIR / "data/sources/demografia"
 
-FONTES = ["inventario", "trends", "forum", "hashtags"]
+FONTES = ["inventario", "trends", "forum", "hashtags", "clientes", "demografia"]
 
 
 # ─── LIGAÇÃO POSTGRESQL ───────────────────────────────────────────────────────
@@ -224,11 +226,18 @@ def _data_hashtags(fp: Path) -> date | None:
         return None
 
 
+def _data_estatica(fp: Path) -> date | None:
+    """Ficheiros de dimensao estaticos sao forçados a aparecer no full_load."""
+    return FULL_LOAD_LIMITE
+
+
 _PARSERS: dict[str, callable] = {
     "inventario": _data_inventario,
     "trends":     _data_trends,
     "forum":      _data_forum,
     "hashtags":   _data_hashtags,
+    "clientes":   _data_estatica,
+    "demografia": _data_estatica,
 }
 
 
@@ -273,6 +282,8 @@ def descobrir_ficheiros(
         "trends":     [(fp, _data_trends(fp))     for fp in sorted(TRENDS_DIR.rglob("trends_*.json"))],
         "forum":      [(fp, _data_forum(fp))       for fp in sorted(FORUM_DIR.rglob("forum_*.txt"))],
         "hashtags":   [(fp, _data_hashtags(fp))    for fp in sorted(HASHTAGS_DIR.rglob("hashtags_*.xml"))],
+        "clientes":   [(fp, _data_estatica(fp))    for fp in sorted(CLIENTES_DIR.rglob("*.csv"))],
+        "demografia": [(fp, _data_estatica(fp))    for fp in sorted(DEMOGRAFIA_DIR.rglob("*.csv"))],
     }
 
     resultado: dict[str, list[Path]] = {}
@@ -329,10 +340,12 @@ def correr_full_load(engine, nlp_habilitado: bool = True):
     _log("A iniciar Bronze...")
     t_bronze = time.time()
     run_bronze(
-        ficheiros_inventario=ficheiros["inventario"],
-        ficheiros_trends=ficheiros["trends"],
-        ficheiros_forum=ficheiros["forum"],
-        ficheiros_hashtags=ficheiros["hashtags"],
+        ficheiros_inventario=ficheiros.get("inventario", []),
+        ficheiros_trends=ficheiros.get("trends", []),
+        ficheiros_forum=ficheiros.get("forum", []),
+        ficheiros_hashtags=ficheiros.get("hashtags", []),
+        ficheiros_clientes=ficheiros.get("clientes", []),
+        ficheiros_demografia=ficheiros.get("demografia", []),
     )
     _log(f"Bronze concluido em {time.time()-t_bronze:.1f}s")
 
@@ -340,10 +353,12 @@ def correr_full_load(engine, nlp_habilitado: bool = True):
     _log(f"A iniciar Silver (NLP={'activo' if nlp_habilitado else 'desabilitado'})...")
     t_silver = time.time()
     run_silver(
-        ficheiros_inventario=[str(f) for f in ficheiros["inventario"]],
-        ficheiros_trends=[str(f) for f in ficheiros["trends"]],
-        ficheiros_forum=[str(f) for f in ficheiros["forum"]],
-        ficheiros_hashtags=[str(f) for f in ficheiros["hashtags"]],
+        ficheiros_inventario=[str(f) for f in ficheiros.get("inventario", [])],
+        ficheiros_trends=[str(f) for f in ficheiros.get("trends", [])],
+        ficheiros_forum=[str(f) for f in ficheiros.get("forum", [])],
+        ficheiros_hashtags=[str(f) for f in ficheiros.get("hashtags", [])],
+        ficheiros_clientes=[str(f) for f in ficheiros.get("clientes", [])],
+        ficheiros_demografia=[str(f) for f in ficheiros.get("demografia", [])],
         nlp_habilitado=nlp_habilitado,
     )
     _log(f"Silver concluido em {time.time()-t_silver:.1f}s")
@@ -421,10 +436,12 @@ def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True):
     _log("A iniciar Bronze...")
     t_bronze = time.time()
     run_bronze(
-        ficheiros_inventario=ficheiros["inventario"],
-        ficheiros_trends=ficheiros["trends"],
-        ficheiros_forum=ficheiros["forum"],
-        ficheiros_hashtags=ficheiros["hashtags"],
+        ficheiros_inventario=ficheiros.get("inventario", []),
+        ficheiros_trends=ficheiros.get("trends", []),
+        ficheiros_forum=ficheiros.get("forum", []),
+        ficheiros_hashtags=ficheiros.get("hashtags", []),
+        ficheiros_clientes=ficheiros.get("clientes", []),
+        ficheiros_demografia=ficheiros.get("demografia", []),
     )
     _log(f"Bronze concluido em {time.time()-t_bronze:.1f}s")
 
@@ -432,10 +449,12 @@ def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True):
     _log(f"A iniciar Silver (NLP={'activo' if nlp_habilitado else 'desabilitado'})...")
     t_silver = time.time()
     run_silver(
-        ficheiros_inventario=[str(f) for f in ficheiros["inventario"]],
-        ficheiros_trends=[str(f) for f in ficheiros["trends"]],
-        ficheiros_forum=[str(f) for f in ficheiros["forum"]],
-        ficheiros_hashtags=[str(f) for f in ficheiros["hashtags"]],
+        ficheiros_inventario=[str(f) for f in ficheiros.get("inventario", [])],
+        ficheiros_trends=[str(f) for f in ficheiros.get("trends", [])],
+        ficheiros_forum=[str(f) for f in ficheiros.get("forum", [])],
+        ficheiros_hashtags=[str(f) for f in ficheiros.get("hashtags", [])],
+        ficheiros_clientes=[str(f) for f in ficheiros.get("clientes", [])],
+        ficheiros_demografia=[str(f) for f in ficheiros.get("demografia", [])],
         nlp_habilitado=nlp_habilitado,
     )
     _log(f"Silver concluido em {time.time()-t_silver:.1f}s")
