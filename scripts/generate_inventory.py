@@ -251,44 +251,91 @@ def generate_inventory()->dict[str,int]:
         stand_dir=OUTPUT_ROOT/stand
         stand_dir.mkdir(parents=True,exist_ok=True)
         row_count=0
+        
+        active_inventory = []
+
         for month_start in daterange_months(START_DATE,END_DATE):
             file_name=f"{month_start.year}_{month_start.month:02d}_{stand}.csv"
             output_file=stand_dir/file_name
 
+            if month_start.month == 12:
+                next_month = date(month_start.year + 1, 1, 1)
+            else:
+                next_month = date(month_start.year, month_start.month + 1, 1)
+            month_end = next_month - timedelta(days=1)
+
+            monthly_target=MONTHLY_VOLUME[stand]+rng.randint(-2,3)
+            monthly_target=max(6,monthly_target)
+
+            for _ in range(monthly_target):
+                vehicle=weighted_vehicle_choice(rng,month_start.month)
+                fuel=choose_fuel(rng,vehicle,month_start.month)
+                entry_date=random_entry_date(rng,month_start)
+                year=vehicle_year(rng,entry_date,vehicle.age_target)
+                km=estimate_km(rng,vehicle,year,entry_date)
+                purchase=acquisition_price(rng,vehicle,fuel,year,entry_date,km)
+                sale_price,sale_date=sale_info(rng,entry_date,purchase)
+                
+                sale_date_obj = date.fromisoformat(sale_date) if sale_date else None
+                
+                car = {
+                    "id_viatura": f"V{vehicle_counter:06d}",
+                    "matricula": generate_plate(rng,used_plates),
+                    "marca": vehicle.marca,
+                    "modelo": vehicle.modelo,
+                    "tipo_automovel": vehicle.tipo,
+                    "num_lugares": vehicle.num_lugares,
+                    "ano_viatura": year,
+                    "combustivel": fuel,
+                    "quilometragem": km,
+                    "preco_aquisicao": purchase,
+                    "data_entrada_stock": entry_date.isoformat(),
+                    "preco_venda_target": sale_price,
+                    "data_venda_target": sale_date_obj,
+                    "stand": stand.capitalize()
+                }
+                active_inventory.append(car)
+                vehicle_counter+=1
+
             with output_file.open("w",newline="",encoding="utf-8") as f:
                 writer=csv.DictWriter(f,fieldnames=COLUMNS)
                 writer.writeheader()
-                monthly_target=MONTHLY_VOLUME[stand]+rng.randint(-2,3)
-                monthly_target=max(6,monthly_target)
+                
+                still_active = []
+                for car in active_inventory:
+                    entry_d = date.fromisoformat(car["data_entrada_stock"])
+                    if entry_d > month_end:
+                        still_active.append(car)
+                        continue
 
-                for _ in range(monthly_target):
-                        vehicle=weighted_vehicle_choice(rng,month_start.month)
-                        fuel=choose_fuel(rng,vehicle,month_start.month)
-                        entry_date=random_entry_date(rng,month_start)
-                        year=vehicle_year(rng,entry_date,vehicle.age_target)
-                        km=estimate_km(rng,vehicle,year,entry_date)
-                        purchase=acquisition_price(rng,vehicle,fuel,year,entry_date,km)
-                        sale_price,sale_date=sale_info(rng,entry_date,purchase)
-                        row={
-                                "id_viatura":f"V{vehicle_counter:06d}",
-                                "matricula":generate_plate(rng,used_plates),
-                                "marca":vehicle.marca,
-                                "modelo":vehicle.modelo,
-                                "tipo_automovel":vehicle.tipo,
-                                "num_lugares":vehicle.num_lugares,
-                                "ano_viatura":year,
-                                "combustivel":fuel,
-                                "quilometragem":km,
-                                "preco_aquisicao":purchase,
-                                "data_entrada_stock":entry_date.isoformat(),
-                                "preco_venda":sale_price,
-                                "data_venda":sale_date,
-                                "stand":stand.capitalize(),
-                            }
-                        row=inject_quality_issue(rng,row)
-                        writer.writerow(row)
-                        vehicle_counter+=1
-                        row_count+=1
+                    is_sold_this_month = car["data_venda_target"] and car["data_venda_target"] <= month_end
+                    
+                    row = {
+                        "id_viatura": car["id_viatura"],
+                        "matricula": car["matricula"],
+                        "marca": car["marca"],
+                        "modelo": car["modelo"],
+                        "tipo_automovel": car["tipo_automovel"],
+                        "num_lugares": car["num_lugares"],
+                        "ano_viatura": car["ano_viatura"],
+                        "combustivel": car["combustivel"],
+                        "quilometragem": car["quilometragem"],
+                        "preco_aquisicao": car["preco_aquisicao"],
+                        "data_entrada_stock": car["data_entrada_stock"],
+                        "preco_venda": car["preco_venda_target"] if is_sold_this_month else "",
+                        "data_venda": car["data_venda_target"].isoformat() if is_sold_this_month else "",
+                        "stand": car["stand"]
+                    }
+                    
+                    row = inject_quality_issue(rng, row)
+                    writer.writerow(row)
+                    row_count += 1
+                    
+                    if not is_sold_this_month:
+                        still_active.append(car)
+                        
+                active_inventory = still_active
+
         counts[stand]=row_count
     return counts
 

@@ -37,7 +37,7 @@ SILVER_HASHTAGS   = str(BASE_DIR / "data_lake/silver/hashtags_delta")
 
 _PG_HOST  = __import__("os").environ.get("PG_HOST", "localhost")
 _PG_PORT  = __import__("os").environ.get("PG_PORT", "5432")
-DW_URL    = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
+DW_URL    = f"postgresql+psycopg2://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
 DW_SCHEMA = "auto_escala_dw"
 
 
@@ -88,7 +88,10 @@ def run_load_to_postgres():
         if not df_inv.empty:
             for col in ["data_entrada_stock", "data_venda"]:
                 if col in df_inv.columns:
-                    series_datas.append(pd.to_datetime(df_inv[col], errors="coerce").dt.normalize())
+                    s = pd.to_datetime(df_inv[col], errors="coerce").dt.normalize()
+                    series_datas.append(s)
+                    s_eom = s + pd.offsets.MonthEnd(0)
+                    series_datas.append(s_eom)
 
         if not df_trends.empty and "mes" in df_trends.columns:
             # mes esta no formato YYYY-MM (ex: "2024-01")
@@ -473,10 +476,18 @@ def run_load_to_postgres():
             fh["data"] = pd.to_datetime(fh["data"], errors="coerce").dt.normalize()
             fh = fh.merge(map_tempo,   on="data",    how="left")
             fh = fh.merge(map_hashtag, on="hashtag", how="left")
+            
+            # Mapear modelo_normalizado para modelo_key
+            if "modelo_normalizado" in fh.columns:
+                fh = fh.merge(map_modelo.rename(columns={"modelo": "modelo_normalizado"}), 
+                             on="modelo_normalizado", how="left")
+            else:
+                fh["modelo_key"] = None
+
             fh["fonte_key"] = fonte_key_hash
             fh = fh.replace({np.nan: None})
 
-            cols = ["tempo_key", "fonte_key", "hashtag_key", "total_posts",
+            cols = ["tempo_key", "fonte_key", "hashtag_key", "modelo_key", "total_posts",
                     "posts_instagram", "posts_twitter", "posts_youtube", "variacao_semanal"]
             fh = fh[cols].dropna(subset=["tempo_key", "fonte_key", "hashtag_key"])
             fh = fh.rename(columns={"total_posts": "volume"})
@@ -484,12 +495,12 @@ def run_load_to_postgres():
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.fct_hashtag_volume
-                        (tempo_key, fonte_key, hashtag_key, volume,
+                        (tempo_key, fonte_key, hashtag_key, modelo_key, volume,
                          posts_instagram, posts_twitter, posts_youtube, variacao_semanal)
                     VALUES
-                        (:tempo_key, :fonte_key, :hashtag_key, :volume,
+                        (:tempo_key, :fonte_key, :hashtag_key, :modelo_key, :volume,
                          :posts_instagram, :posts_twitter, :posts_youtube, :variacao_semanal)
-                    ON CONFLICT (tempo_key, fonte_key, hashtag_key) DO UPDATE SET
+                    ON CONFLICT (tempo_key, fonte_key, hashtag_key, modelo_key) DO UPDATE SET
                         volume           = EXCLUDED.volume,
                         posts_instagram  = EXCLUDED.posts_instagram,
                         posts_twitter    = EXCLUDED.posts_twitter,
@@ -497,6 +508,50 @@ def run_load_to_postgres():
                         variacao_semanal = EXCLUDED.variacao_semanal
                 """),
                 fh.to_dict(orient="records"),
+            )
+
+        # ======================================================================
+        # FCT_INVENTARIO_MENSAL (ELT)
+        # ======================================================================
+        print("  A processar fct_inventario_mensal (Snapshot Mensal via ELT)...")
+        if not df_inv.empty:
+            conn.execute(
+                text(f"""
+                    WITH meses_afetados AS (
+                        -- Obtemos todas as datas de fim de mês relevantes para o run atual
+                        SELECT DISTINCT date_trunc('month', data)::date + interval '1 month' - interval '1 day' AS data_fim_mes
+                        FROM {DW_SCHEMA}.dim_tempo
+                        WHERE data IN (
+                            SELECT t.data FROM {DW_SCHEMA}.fct_venda v JOIN {DW_SCHEMA}.dim_tempo t ON v.tempo_entrada_key = t.tempo_key
+                            UNION
+                            SELECT t.data FROM {DW_SCHEMA}.fct_venda v JOIN {DW_SCHEMA}.dim_tempo t ON v.tempo_venda_key = t.tempo_key
+                        )
+                    ),
+                    meses_keys AS (
+                        SELECT t.tempo_key, m.data_fim_mes
+                        FROM {DW_SCHEMA}.dim_tempo t
+                        JOIN meses_afetados m ON t.data = m.data_fim_mes::date
+                    )
+                    INSERT INTO {DW_SCHEMA}.fct_inventario_mensal
+                        (tempo_key, stand_key, veiculo_key, valor_em_stock, dias_em_parque)
+                    SELECT
+                        mk.tempo_key,
+                        v.stand_key,
+                        v.veiculo_key,
+                        v.preco_aquisicao AS valor_em_stock,
+                        (mk.data_fim_mes::date - t_entrada.data) AS dias_em_parque
+                    FROM
+                        {DW_SCHEMA}.fct_venda v
+                    JOIN {DW_SCHEMA}.dim_tempo t_entrada ON v.tempo_entrada_key = t_entrada.tempo_key
+                    LEFT JOIN {DW_SCHEMA}.dim_tempo t_venda ON v.tempo_venda_key = t_venda.tempo_key
+                    CROSS JOIN meses_keys mk
+                    WHERE
+                        t_entrada.data <= mk.data_fim_mes
+                        AND (t_venda.data IS NULL OR t_venda.data > mk.data_fim_mes)
+                    ON CONFLICT (tempo_key, stand_key, veiculo_key) DO UPDATE SET
+                        valor_em_stock = EXCLUDED.valor_em_stock,
+                        dias_em_parque = EXCLUDED.dias_em_parque
+                """)
             )
 
     engine.dispose()

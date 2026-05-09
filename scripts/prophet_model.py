@@ -19,7 +19,7 @@ except ImportError:
 # Host configuravel via env var: 'localhost' local, 'postgres' no Docker Airflow
 _PG_HOST = os.environ.get("PG_HOST", "localhost")
 _PG_PORT = os.environ.get("PG_PORT", "5432")
-DW_URL   = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
+DW_URL   = f"postgresql+psycopg2://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
 
 
 def _criar_engine_prophet():

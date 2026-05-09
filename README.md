@@ -21,7 +21,7 @@ Landing Zone (data/sources/)
        ▼
 PostgreSQL Star Schema (auto_escala_dw)
   ├── dim_stand / dim_modelo / dim_veiculo / dim_tempo / dim_fonte / dim_hashtag
-  ├── fct_venda / fct_tendencia / fct_hashtag_volume
+  ├── fct_venda / fct_inventario_mensal / fct_tendencia / fct_hashtag_volume
   ├── data_quality_log / pipeline_control (watermarks CDC)
   └── audit_log_dimensions (trigger-based SCD Tipo 1)
        │

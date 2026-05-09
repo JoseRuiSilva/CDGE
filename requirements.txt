@@ -10,6 +10,8 @@ deltalake>=0.17
 # Base de dados
 psycopg[binary]>=3.1
 sqlalchemy>=2.0
+psycopg2
+
 
 # Análise preditiva
 prophet>=1.1

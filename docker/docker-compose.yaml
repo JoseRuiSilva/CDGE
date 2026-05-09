@@ -31,6 +31,8 @@ x-airflow-common: &airflow-common
     # Webserver
     AIRFLOW__WEBSERVER__SECRET_KEY: "autoescala_cdge_2026_secret"
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    # REST API -- permitir Basic Auth (admin:admin)
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
     # Encoding UTF-8 para prints em portugues
     PYTHONUTF8: "1"
     PYTHONIOENCODING: "utf-8"

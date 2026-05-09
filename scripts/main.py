@@ -64,7 +64,7 @@ import os as _os
 _PG_HOST = _os.environ.get("PG_HOST", "localhost")
 _PG_PORT = _os.environ.get("PG_PORT", "5432")
 
-DW_URL    = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala?connect_timeout=10"
+DW_URL    = f"postgresql+psycopg2://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala?connect_timeout=10"
 DW_SCHEMA = "auto_escala_dw"
 
 # Fronteira do batch histórico — full_load processa ATÉ ESTE DIA (inclusive)

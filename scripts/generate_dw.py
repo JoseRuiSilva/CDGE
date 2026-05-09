@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, text
 
 _PG_HOST = os.environ.get("PG_HOST", "localhost")
 _PG_PORT = os.environ.get("PG_PORT", "5432")
-DW_URL     = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
+DW_URL     = f"postgresql+psycopg2://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
 dw_engine  = create_engine(DW_URL, echo=False)
 
 # ==========================================
@@ -105,6 +105,16 @@ CREATE TABLE fct_venda (
     UNIQUE (veiculo_key, stand_key, tempo_entrada_key)
 );
 
+CREATE TABLE fct_inventario_mensal (
+    inventario_key SERIAL PRIMARY KEY,
+    tempo_key INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
+    stand_key INTEGER NOT NULL REFERENCES dim_stand(stand_key),
+    veiculo_key INTEGER NOT NULL REFERENCES dim_veiculo(veiculo_key),
+    valor_em_stock NUMERIC(12,2),
+    dias_em_parque INTEGER,
+    UNIQUE (tempo_key, stand_key, veiculo_key)
+);
+
 CREATE TABLE fct_tendencia (
     tendencia_key SERIAL PRIMARY KEY,
     tempo_key INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
@@ -123,12 +133,13 @@ CREATE TABLE fct_hashtag_volume (
     tempo_key INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
     fonte_key INTEGER NOT NULL REFERENCES dim_fonte(fonte_key),
     hashtag_key INTEGER NOT NULL REFERENCES dim_hashtag(hashtag_key),
+    modelo_key INTEGER REFERENCES dim_modelo(modelo_key), -- Relacionamento opcional com modelo
     volume INTEGER NOT NULL DEFAULT 0,
     posts_instagram INTEGER DEFAULT 0,
     posts_twitter INTEGER DEFAULT 0,
     posts_youtube INTEGER DEFAULT 0,
     variacao_semanal NUMERIC(10,4),
-    UNIQUE (tempo_key, fonte_key, hashtag_key)
+    UNIQUE (tempo_key, fonte_key, hashtag_key, modelo_key)
 );
 
 -- =========================
@@ -209,6 +220,10 @@ CREATE INDEX idx_fct_venda_veiculo ON fct_venda(veiculo_key);
 CREATE INDEX idx_fct_venda_stand ON fct_venda(stand_key);
 CREATE INDEX idx_fct_venda_tempo_entrada ON fct_venda(tempo_entrada_key);
 CREATE INDEX idx_fct_venda_tempo_venda ON fct_venda(tempo_venda_key);
+
+CREATE INDEX idx_fct_inventario_tempo ON fct_inventario_mensal(tempo_key);
+CREATE INDEX idx_fct_inventario_stand ON fct_inventario_mensal(stand_key);
+CREATE INDEX idx_fct_inventario_veiculo ON fct_inventario_mensal(veiculo_key);
 
 CREATE INDEX idx_fct_tendencia_tempo ON fct_tendencia(tempo_key);
 CREATE INDEX idx_fct_tendencia_fonte ON fct_tendencia(fonte_key);

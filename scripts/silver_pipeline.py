@@ -11,10 +11,15 @@ Fontes: inventário (CSV), Google Trends (JSON), fórum (TXT), hashtags (XML).
 Decisões de desenho: ver contexto_auto_escala_llm.txt e diálogos de decisão.
 """
 
+import os
 import re
 import sys
 import time
 import socket
+
+# Fix para conflito de OpenMP (libiomp5md.dll) que faz o pysentimiento crashar/devolver 0.0
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import pandas as pd
 import pyarrow as pa
 from deltalake import DeltaTable, write_deltalake
@@ -83,7 +88,7 @@ QUARENTENA_HASHTAGS   = str(BASE_DIR / "data_lake/quarantine/hashtags_delta")
 # PostgreSQL -- dicionario de normalizacao e data_quality_log
 _PG_HOST  = __import__("os").environ.get("PG_HOST", "localhost")
 _PG_PORT  = __import__("os").environ.get("PG_PORT", "5432")
-DW_URL    = f"postgresql+psycopg://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
+DW_URL    = f"postgresql+psycopg2://ae_user:ae_pass_2026@{_PG_HOST}:{_PG_PORT}/auto_escala"
 DW_SCHEMA = "auto_escala_dw"
 
 # Limiares de deteção de tendências (documentados na secção 5.3 do relatório)
@@ -174,7 +179,6 @@ def _carregar_dicionario(engine) -> pd.DataFrame:
     """
     Lê dim_dicionario_veiculo do PostgreSQL e devolve DataFrame com
     valor_original pré-normalizado (lowercase+trim) para lookup direto.
-    Se o PostgreSQL não estiver acessível, devolve DataFrame vazio (pipeline continua).
     """
     try:
         with engine.connect() as conn:
@@ -191,65 +195,56 @@ def _carregar_dicionario(engine) -> pd.DataFrame:
         return pd.DataFrame(columns=["campo", "valor_original", "valor_normalizado", "valor_original_norm"])
 
 
-def _lookup(valor: str, campo: str, dicionario: pd.DataFrame) -> str | None:
-    """
-    Devolve o valor normalizado para (campo, valor) no dicionário.
-    Devolve None se não encontrado.
-    """
-    if dicionario.empty or pd.isna(valor):
+def _criar_mapa_dicionario(df_dic: pd.DataFrame) -> dict:
+    """Transforma o DataFrame do dicionário num mapa {campo: {original: normalizado}} para O(1) lookup."""
+    mapa = {}
+    if df_dic.empty:
+        return mapa
+    for campo in df_dic["campo"].unique():
+        subset = df_dic[df_dic["campo"] == campo]
+        mapa[campo] = dict(zip(subset["valor_original_norm"], subset["valor_normalizado"]))
+    return mapa
+
+
+def _lookup(valor: str, campo: str, dicionario_map: dict) -> str | None:
+    """Devolve o valor normalizado usando o mapa (O(1))."""
+    if not dicionario_map or pd.isna(valor):
         return None
     chave = _normalizar_para_lookup(str(valor))
-    subset = dicionario[dicionario["campo"] == campo]
-    match = subset[subset["valor_original_norm"] == chave]
-    if not match.empty:
-        return match.iloc[0]["valor_normalizado"]
-    return None
+    return dicionario_map.get(campo, {}).get(chave)
 
 
-def _lookup_trends(termo: str, dicionario: pd.DataFrame) -> tuple:
-    """
-    Para termos de Trends (frases como "VW Golf usado"):
-    procura marcas e modelos por substring/word-boundary dentro do termo,
-    em vez de correspondência exacta.
-    Devolve (marca_normalizada, modelo_normalizado) — cada um pode ser None.
-    """
-    if dicionario.empty or pd.isna(termo) or not termo:
+def _lookup_trends(termo: str, dicionario_map: dict) -> tuple:
+    """Lookup por substring para Google Trends."""
+    if not dicionario_map or pd.isna(termo) or not termo:
         return None, None
     chave = _normalizar_para_lookup(str(termo))
     marca_encontrada, modelo_encontrado = None, None
-    for _, row in dicionario.iterrows():
-        padrao = row["valor_original_norm"]
-        if not padrao:
-            continue
-        if re.search(r"\b" + re.escape(padrao) + r"\b", chave):
-            if row["campo"] == "marca" and not marca_encontrada:
-                marca_encontrada = row["valor_normalizado"]
-            elif row["campo"] == "modelo" and not modelo_encontrado:
-                modelo_encontrado = row["valor_normalizado"]
+    
+    # Infelizmente para substring temos de iterar, mas podemos iterar sobre o mapa que e mais rapido que o DF
+    for campo in ["marca", "modelo"]:
+        for original, normalizado in dicionario_map.get(campo, {}).items():
+            if re.search(r"\b" + re.escape(original) + r"\b", chave):
+                if campo == "marca": marca_encontrada = normalizado
+                else: modelo_encontrado = normalizado
+                break # primeira correspondencia
     return marca_encontrada, modelo_encontrado
 
-def _extrair_mencoes(texto: str, dicionario: pd.DataFrame) -> tuple[list[str], list[str]]:
-    """
-    Percorre o texto e devolve (marcas_encontradas, modelos_encontrados)
-    como listas de valores normalizados únicos.
-    Estratégia defensiva para fonte não estruturada: procura por substring/word boundary,
-    não assume estrutura do texto.
-    """
-    if dicionario.empty or not texto:
+def _extrair_mencoes(texto: str, dicionario_map: dict) -> tuple[list[str], list[str]]:
+    """Extração otimizada de menções via regex único para marcas e modelos."""
+    if not dicionario_map or not texto:
         return [], []
 
     texto_norm = _normalizar_para_lookup(texto)
     marcas, modelos = set(), set()
 
-    for _, row in dicionario.iterrows():
-        padrao = re.escape(row["valor_original_norm"])
-        if not padrao:
-            continue
-        if re.search(r"\b" + padrao + r"\b", texto_norm):
-            if row["campo"] == "marca":
-                marcas.add(row["valor_normalizado"])
-            elif row["campo"] == "modelo":
-                modelos.add(row["valor_normalizado"])
+    for campo, items in dicionario_map.items():
+        if campo not in ["marca", "modelo"]: continue
+        for original, normalizado in items.items():
+            if original in texto_norm: # pre-check rapido
+                if re.search(r"\b" + re.escape(original) + r"\b", texto_norm):
+                    if campo == "marca": marcas.add(normalizado)
+                    else: modelos.add(normalizado)
 
     return sorted(marcas), sorted(modelos)
 
@@ -447,9 +442,8 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
 
     print(f"  Bronze lido: {len(df_bronze)} registos")
 
-    dicionario = _carregar_dicionario(engine) if engine else pd.DataFrame(
-        columns=["campo", "valor_original", "valor_normalizado", "valor_original_norm"]
-    )
+    df_dic = _carregar_dicionario(engine) if engine else pd.DataFrame()
+    dicionario_map = _criar_mapa_dicionario(df_dic)
 
     # 1. Normalizar nulos textuais
     df = _normalizar_nulos(df_bronze.copy())
@@ -473,8 +467,8 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
         mask_km_invalido = pd.Series(False, index=df.index)
 
     # 3. Normalizar marca e modelo via dicionário
-    df["marca_normalizada"]  = df["marca"].apply(lambda v: _lookup(v, "marca", dicionario))
-    df["modelo_normalizado"] = df["modelo"].apply(lambda v: _lookup(v, "modelo", dicionario))
+    df["marca_normalizada"]  = df["marca"].apply(lambda v: _lookup(v, "marca", dicionario_map))
+    df["modelo_normalizado"] = df["modelo"].apply(lambda v: _lookup(v, "modelo", dicionario_map))
 
     # 4. Identificar registos para quarentena
     # Cada máscara identifica uma regra. A union decide quem sai.
@@ -543,6 +537,9 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
     _escrever_quarentena(quarentena_registos, QUARENTENA_INVENTARIO)
 
     if not df_ok.empty:
+        # Deduplicar por matricula para evitar erro de MERGE do Delta Lake
+        # Se houver varias versoes do mesmo carro no mesmo batch, ficamos com a ultima.
+        df_ok = df_ok.drop_duplicates(subset=["matricula"], keep="last")
         _merge_silver(df_ok, SILVER_INVENTARIO, bk_cols=["matricula"])
 
     if engine:
@@ -586,9 +583,8 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
 
     print(f"  Bronze lido: {len(df_bronze)} registos")
 
-    dicionario = _carregar_dicionario(engine) if engine else pd.DataFrame(
-        columns=["campo", "valor_original", "valor_normalizado", "valor_original_norm"]
-    )
+    df_dic = _carregar_dicionario(engine) if engine else pd.DataFrame()
+    dicionario_map = _criar_mapa_dicionario(df_dic)
 
     df = _normalizar_nulos(df_bronze.copy())
 
@@ -599,7 +595,7 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
 
     # Normalização do termo → marca/modelo
     # Trends têm termos como "VW Golf usado" — usa lookup por substring, não exacto
-    lookup_results = df["termo"].apply(lambda v: _lookup_trends(v, dicionario))
+    lookup_results = df["termo"].apply(lambda v: _lookup_trends(v, dicionario_map))
     df["marca_normalizada"]  = lookup_results.apply(lambda t: t[0])
     df["modelo_normalizado"] = lookup_results.apply(lambda t: t[1])
 
@@ -624,6 +620,8 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
 
     _escrever_quarentena(quarentena_registos, QUARENTENA_TRENDS)
     if not df_ok.empty:
+        # Deduplicar por termo+mes+regiao para evitar erro de MERGE
+        df_ok = df_ok.drop_duplicates(subset=["termo", "mes", "regiao"], keep="last")
         _merge_silver(df_ok, SILVER_TRENDS, bk_cols=["termo", "mes", "regiao"])
 
     if engine:
@@ -705,9 +703,8 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
 
     print(f"  Bronze lido: {len(df_bronze)} ficheiros")
 
-    dicionario = _carregar_dicionario(engine) if engine else pd.DataFrame(
-        columns=["campo", "valor_original", "valor_normalizado", "valor_original_norm"]
-    )
+    df_dic = _carregar_dicionario(engine) if engine else pd.DataFrame()
+    dicionario_map = _criar_mapa_dicionario(df_dic)
 
     registos_ok, quarentena_registos = [], []
 
@@ -727,7 +724,7 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
         texto_limpo = _limpar_texto_forum(str(texto_bruto))
 
         # Extrair menções a marcas e modelos (abordagem defensiva por substring/regex)
-        marcas, modelos = _extrair_mencoes(texto_limpo, dicionario)
+        marcas, modelos = _extrair_mencoes(texto_limpo, dicionario_map)
         n_mencoes = len(marcas) + len(modelos)
 
         # Análise de sentimento
@@ -814,9 +811,8 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
 
     print(f"  Bronze lido: {len(df_bronze)} registos")
 
-    dicionario = _carregar_dicionario(engine) if engine else pd.DataFrame(
-        columns=["campo", "valor_original", "valor_normalizado", "valor_original_norm"]
-    )
+    df_dic = _carregar_dicionario(engine) if engine else pd.DataFrame()
+    dicionario_map = _criar_mapa_dicionario(df_dic)
 
     df = _normalizar_nulos(df_bronze.copy())
 
@@ -844,10 +840,24 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
     # Extração de modelo a partir da hashtag (ex: "#volkswagengolf" → "Golf")
     # Remove o '#' e faz lookup no campo 'hashtag' do dicionário
     def _modelo_de_hashtag(hashtag: str) -> str | None:
+        """
+        Tenta mapear uma hashtag para um modelo/marca normalizado.
+        Ordem de prioridade: campo 'hashtag' -> campo 'modelo' -> campo 'marca'
+        """
         if pd.isna(hashtag):
             return None
         tag_limpa = re.sub(r"^#", "", str(hashtag).lower().strip())
-        return _lookup(tag_limpa, "hashtag", dicionario)
+        
+        # 1. Tentar como hashtag específica (ex: 'volkswagengolf' -> 'Golf')
+        m = _lookup(tag_limpa, "hashtag", dicionario_map)
+        if m: return m
+        
+        # 2. Tentar como modelo direto (ex: 'golf' -> 'Golf')
+        m = _lookup(tag_limpa, "modelo", dicionario_map)
+        if m: return m
+        
+        # 3. Tentar como marca direta (ex: 'bmw' -> 'BMW')
+        return _lookup(tag_limpa, "marca", dicionario_map)
 
     df_ok["modelo_normalizado"] = df_ok["hashtag"].apply(_modelo_de_hashtag)
 
@@ -887,6 +897,8 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
 
     _escrever_quarentena(quarentena_registos, QUARENTENA_HASHTAGS)
     if not df_ok.empty:
+        # Deduplicar por hashtag+data para evitar erro de MERGE
+        df_ok = df_ok.drop_duplicates(subset=["hashtag", "data"], keep="last")
         _merge_silver(df_ok, SILVER_HASHTAGS, bk_cols=["hashtag", "data"])
 
     if engine:
