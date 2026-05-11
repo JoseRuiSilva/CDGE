@@ -1,0 +1,202 @@
+Caros Alunos,
+
+Espero que todos estejam bem.
+
+
+
+Tal como referido na última aula, aqui vai um pequeno "guião" com algumas ideias e sugestões relativamente à forma como deverão organizar e redigir o relatório do trabalho da unidade curricular de Ciências de Dados em Grande Escala. Assim, de seguida, tendo em conta o tema do trabalho apresentado para este ano - “Análise de Tendências de Aquisição de Produtos em Retalho Especializado”, apresento-vos a estrutura que DEVEM adotar para a organização e redação do referido relatório. A estrutura apresentada deverá ser incluída no template disponibilizado no início do semestre para o desenvolvimento do relatório da unidade curricular. O template está disponível na área de conteúdo da unidade curricular no sistema de e-Learning da Universidade do Minho. Recordo que o template refrido é de utilização obrigatória. 
+
+
+
+Bom trabalho.
+
+Cumprimentos a todos.
+
+Fiquem bem,
+
+Orlando Belo
+
+ 
+
+-----<>-------------------------------------------------------------------------------------
+
+ 
+
+Estrutura Base do Relatório do Trabalho da Unidade Curricular
+
+ 
+
+Resumo (250 palavras)
+
+>> Descrição resumida do processo de desenvolvimento do sistema de suporte à decisão.
+
+Palavras-chave (no máximo 6 palavras)
+
+>> Enumeração de um conjunto de palavras-chave relacionadas com o projeto.
+
+ 
+
+1. Definição do Sistema
+
+1.1 Contexto de Aplicação
+
+>> Apresentação (com detalhe) do contexto do caso de estudo para o qual vão desenvolver o sistema de análise de dados para suporte à decisão que idealizaram para o tema de trabalho sugerido.
+
+1.2 Motivação e Objetivos do Trabalho
+
+>> Apresentação e fundamentação do projeto, apresentando o motivo porque é que o sistema referido deve ser desenvolvido. Enumerar e explicar cada um dos objetivos que se pretende alcançar com a implementação desse sistema, bem como apresentar e fundamentar as decisões que serão suportadas pelo sistema.
+
+1.3 Análise da Viabilidade do Processo
+
+>> Apresentação e justificação da viabilidade do projeto. Justificar com exemplos concretos de medidas de viabilidade.
+
+1.4 Recursos e Equipa de Trabalho
+
+>> Enumeração dos diversos recursos humanos e materiais que serão utilizados durante o processo de desenvolvimento do projeto. Justificar cada um deles e enquadrá-los no processo de desenvolvimento.
+
+1.5 Plano de Execução do Projeto
+
+>> Apresentação e explicação da planificação da execução do projeto que desenvolveram, apresentando um diagrama GANTT que ilustre detalhadamente a forma como as diversas etapas do projeto vão ser realizadas, associando os seus diversos atores. Justificar os períodos de tempo definidos para cada tarefa.
+
+ 
+
+2. Levantamento e Análise de Requisitos 
+
+2.1 Método Adotado 
+
+>> Identificação, justificação e caracterização das diversas formas de levantamento de requisitos, que utilizaram para identificar as necessidades dos analistas envolvidos. Referir e incluir eventual documentação utilizada ou recolhida. 
+
+2.2 Organização dos Requisitos Levantados 
+
+>> Explicação do processo de levantamento realizado e exposição da organização de requisitos adotada. Enumeração e organização dos requisitos levantados, de acordo com a área de análise (ou analista de dados) do projeto – os utilizadores finais do sistema. 
+
+2.3 Análise e Validação Geral dos Requisitos 
+
+>> Validação dos requisitos apresentados, de acordo com as diversas vistas de utilização dos agentes de decisão caracterizados. Relatar eventuais anomalias e ações corretivas desenvolvidas.
+
+ 
+
+3. Implementação do Sistema de Análise
+
+3.1 Apresentação Geral
+
+>> Apresentação e explicação geral do sistema implementado, apresentação das funcionalidades gerais do sistema, tendo em consideração o tema do trabalho. Apresentação e fundamentação das opções de desenvolvimento adotadas. Apresentação e caracterização da arquitetura adotada, identificando e explicando cada uma das suas áreas de trabalho, componentes e serviços a implementar. Apresentação, justificação e área de aplicação (serviços) das ferramentas utilizadas. 
+
+3.2 Fontes de Dados
+
+>> Identificação, fundamentação, caracterização e utilidade de cada uma das fontes de dados a utilizadas. 
+
+3.3 Área de Preparação de dados
+
+>> Justificar a existência (ou não) de uma área de preparação de dados e a forma como será organizada para sustentar o processo de integração de dados do sistema. Caso se opte por utilizar um lago de dados, uma sandbox analítica ou um operational data store, explicar o porquê da sua utilização, a forma como essas estruturas foram estruturadas e como suportarão o processo de integração de dados do sistema de análise global. 
+
+3.4 Área de Dados do Sistema de Análise
+
+>> Apresentação e explicação geral do sistema de dados implementado para suporte ao sistema de análise de dados. Apresentação e fundamentação das opções de desenvolvimento adotadas na adoção do modelo de dados escolhido e na conceção e implementação das estruturas de dados do sistema. Caso exista um esquema pre definido, fundamentá-lo e explicá-lo. 
+
+ 
+
+3.5 O Processo de Integração de Dados 
+
+>> Apresentação e explicação da forma como foi estabelecido e desenvolvido o processo de integração de dados, com referência ao método, notação e ferramentas utilizadas. Apresentação e explicação do mapeamento de dados (source-to-target datamap) desenvolvido, expondo e explicando os diversos elementos de dados envolvidos nas fontes de dados e no sistema final para análise de dados, bem como todas as transformações a executar durante o processo de povoamento a implementar. 
+
+>> Apresentação e explicação do modelo desenvolvido para o sistema de integração de dados, abordando cada uma das tarefas definidas, bem como a forma como os diversos fluxos de dados (pipelining) foram desenvolvidos. Utilizar BPMN para elaborar o modelo do sistema de integração de dados.
+
+>> Descrever de forma detalhada o processo de implementação do sistema de integração de dados que foi modelado. Apresentar o processo de validação e testes que foi aplicado sobre o sistema desenvolvido.
+
+ 
+
+4. Exploração e Análise de Dados 
+
+4.1 Organização geral do sistema de dashboarding 
+
+>> Explicar como foi desenvolvida a organização dos vários dashboards desenvolvidos, tendo em conta as necessidades de análise de cada um dos perfis dos analistas de dados caracterizados anteriormente. 
+
+4.2 Serviços de exploração e análise implementados 
+
+>> Apresentar e explicar a utilidade de cada um dos dasboards desenvolvidos, justificando o seu tipo e operacionalidade de acordo com os requistos de análise de dados previamente recolhidos.
+
+ 
+
+5. O Sistema de Análise de Tendências de Aquisição de Produtos 
+
+5.1 Definição do problema e compreensão dos elementos de análise envolvidos.
+
+>> Explicar o problema a resolver e descrever a forma como será resolvido, apresentando os métodos e as técnicas que se irão aplicar. Uma continuação ou complemento do que foi exposto e justificado no capítulo 1 deste relatório.
+
+5.2 Seleção e preparação dos dados.
+
+>> Apresentar as diversas etapas de preparação de dados para análise após o sistema de dados criado, caso seja necessário.
+
+5.3 Identificação e fundamentação da técnica de análise.
+
+>> Seleção e justificação da técnica de análise escolhida para o estabelecimento das tendências de aquisição de produtos.
+
+5.4 Construção do modelo de análise.
+
+>> Implementação e execução do modelo de análise escolhido.
+
+5.5 Validação do desempenho do modelo.
+
+>> Validação do desempenho do modelo através da utilização de técnicas adequadas ao tipo de modelo escolhido.
+
+5.6 Avaliação dos resultados.
+
+>> Avaliação dos resultados e do seu reflexo prático.
+
+ 
+
+6. Conclusões e Trabalho Futuro 
+
+6.1 Conclusões 
+
+>> Resumo breve do trabalho realizado e das ações desenvolvidas. Enumeração e análise de aspetos positivos e negativos identificados durante o processo de desenvolvimento do sistema de suporte à decisão. 
+
+6.2 Trabalho Futuro 
+
+>> Sugestão de correções ou de melhorias a realizar sobre o sistema desenvolvido, com o objetivo de aumentar e melhorar os serviços que disponibiliza na versão implementada. Fundamentar.
+
+ 
+
+7. Bibliografia 
+
+>> Enumeração dos diversos recursos bibliográficos utilizados. Utilizar o sistema de referenciação APA (https://guias.sdum.uminho.pt/apa). 
+
+ 
+
+Anexos (Caso existam) 
+
+>> Apresentação de textos, diagramas e outros documentos que não foram incluídos no texto do corpo do relatório, mas que são importantes para o entendimento do projeto desenvolvido. 
+
+ 
+
+PLANO DE EXECUCAO:
+Olá a todos!
+
+De acordo com aquilo que combinámos na aula de ontem, de seguida apresento-vos as datas que eu considerei na altura em que defini o trabalho, como sendo datas adequadas para a realização de cada uma das etapas de desenvolvimento definidas para o vosso trabalho prático:
+
+
+
+1. Definição do Sistema - 12FEV2026-05MAR2026.
+
+2. Levantamento e Análise de Requisitos - 05MAR2026-26MAR2026.
+
+3. Implementação do Sistema de Análise - 26MAR2026-23ABR2026.
+
+4. Exploração e Análise de Dados - 23ABR2026-30ABR2026. 
+
+5. O Sistema de Análise de Tendências de Aquisição de Produtos - 30ABR2026-21MAI2026. 
+
+6. Conclusões e Trabalho Futuro - 21MAI2026-28MAI2026. 
+
+
+
+Este foi o plano que eu defini para a realização do vosso trabalho, para me orientar no vosso acompanhamento.
+
+Neste momento, a sua divulgação tem como objetivo "sublinhar" que deveriam estar a realizar o trabalho de forma gradual, etapa a etapa, tentando cumprir as datas sugeridas, para não deixarem um grande volume de trabalho para próximo da data final de entrega.
+
+Bom fim-de-semana,
+
+
+
+Orlando Belo  

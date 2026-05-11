@@ -99,11 +99,11 @@ CREATE TABLE dim_veiculo (
 -- DICIONÁRIO DE NORMALIZAÇÃO
 -- =============================================================================
 -- Convenções:
---   campo = 'marca'        → valor_normalizado = 'Mercedes'
---   campo = 'modelo'       → valor_normalizado = 'Golf'
---   campo = 'marca_modelo' → valor_normalizado = 'Volkswagen|Golf'
---   campo = 'combustivel'  → valor_normalizado = 'Gasóleo'
---   campo = 'tipo_automovel' → valor_normalizado = 'SUV'
+--   campo = 'marca'        -> valor_normalizado = 'Mercedes'
+--   campo = 'modelo'       -> valor_normalizado = 'Golf'
+--   campo = 'marca_modelo' -> valor_normalizado = 'Volkswagen|Golf'
+--   campo = 'combustivel'  -> valor_normalizado = 'Gasóleo'
+--   campo = 'tipo_automovel' -> valor_normalizado = 'SUV'
 -- =============================================================================
 
 CREATE TABLE dim_dicionario_veiculo (
@@ -302,25 +302,113 @@ CREATE TRIGGER trg_audit_dim_cliente
 -- VIEWS
 -- =============================================================================
 
-CREATE VIEW vw_recomendacao_alocacao_stock AS
+-- =============================================================================
+-- VIEWS DE NEGÓCIO (DATA MARTS PARA DASHBOARDS)
+-- =============================================================================
+
+-- 1. MART COMPRAS: Tendências, Previsões e Rotação Histórica
+CREATE OR REPLACE VIEW vw_mart_compras AS
+SELECT
+    dm.marca,
+    dm.modelo,
+    dm.tipo_automovel,
+    dt.ano,
+    dt.mes,
+    ft.valor_interesse,
+    ft.crescimento_mom_pct AS tendencia_crescimento,
+    fp.valor_previsto AS previsao_interesse_prox_mes,
+    fp.yhat_lower,
+    fp.yhat_upper,
+    -- Média de dias em stock histórico para este modelo (rotação)
+    (SELECT AVG(dias_em_stock) FROM auto_escala_dw.fct_venda fv2 
+     JOIN auto_escala_dw.dim_veiculo dv2 ON fv2.veiculo_key = dv2.veiculo_key
+     WHERE dv2.modelo_key = dm.modelo_key) AS media_dias_stock_historico
+FROM auto_escala_dw.fact_trends ft
+JOIN auto_escala_dw.dim_modelo dm ON ft.modelo_key = dm.modelo_key
+JOIN auto_escala_dw.dim_tempo dt ON ft.tempo_key = dt.tempo_key
+LEFT JOIN auto_escala_dw.fact_previsao fp ON ft.modelo_key = fp.modelo_key 
+    AND ft.tempo_key = fp.tempo_ref_key;
+
+-- 2. MART STOCK: Estado atual e envelhecimento do inventário
+CREATE OR REPLACE VIEW vw_mart_stock AS
 SELECT
     ds.nome_stand,
     dl.distrito,
     dm.marca,
     dm.modelo,
-    ft.crescimento_mom_pct,
-    -- Pegamos na última previsão disponível para este modelo
-    (SELECT valor_previsto FROM auto_escala_dw.fact_previsao fp 
-     WHERE fp.modelo_key = dm.modelo_key 
-     ORDER BY tempo_ref_key DESC LIMIT 1) AS previsao_prox_mes,
-    dr.pct_25_34    AS proporcao_jovens_stand,
-    dr.pct_feminino AS proporcao_feminina_stand
+    dv.matricula,
+    dv.ano_viatura,
+    fim.dias_em_parque,
+    fim.valor_em_stock,
+    dt.data AS data_referencia,
+    CASE 
+        WHEN fim.dias_em_parque > 90 THEN 'Crítico (>90d)'
+        WHEN fim.dias_em_parque > 60 THEN 'Alerta (>60d)'
+        ELSE 'Normal'
+    END AS status_envelhecimento
+FROM auto_escala_dw.fct_inventario_mensal fim
+JOIN auto_escala_dw.dim_veiculo dv ON fim.veiculo_key = dv.veiculo_key
+JOIN auto_escala_dw.dim_modelo dm ON dv.modelo_key = dm.modelo_key
+JOIN auto_escala_dw.dim_stand ds ON fim.stand_key = ds.stand_key
+JOIN auto_escala_dw.dim_localizacao dl ON ds.localizacao_key = dl.localizacao_key
+JOIN auto_escala_dw.dim_tempo dt ON fim.tempo_key = dt.tempo_key;
+
+-- 3. MART DIREÇÃO: Performance Global, Margens e Sentimento
+CREATE OR REPLACE VIEW vw_mart_direcao AS
+WITH vendas_mensais AS (
+    SELECT
+        dv.modelo_key,
+        dt.ano,
+        dt.mes,
+        COUNT(*) AS total_vendas,
+        SUM(fv.preco_venda) AS faturacao,
+        SUM(fv.margem) AS lucro_total,
+        AVG(fv.margem / NULLIF(fv.preco_venda, 0)) * 100 AS margem_media_pct
+    FROM auto_escala_dw.fct_venda fv
+    JOIN auto_escala_dw.dim_veiculo dv ON fv.veiculo_key = dv.veiculo_key
+    JOIN auto_escala_dw.dim_tempo dt ON fv.tempo_venda_key = dt.tempo_key
+    WHERE fv.tempo_venda_key IS NOT NULL
+    GROUP BY 1, 2, 3
+),
+forum_mensal AS (
+    SELECT 
+        modelo_key,
+        dt.ano,
+        dt.mes,
+        SUM(n_mencoes) AS total_mencoes,
+        AVG(score_sentimento) AS sentimento_medio
+    FROM auto_escala_dw.fact_forum_sentiment ffs
+    JOIN auto_escala_dw.dim_tempo dt ON ffs.tempo_key = dt.tempo_key
+    GROUP BY 1, 2, 3
+)
+SELECT
+    dm.marca,
+    dm.modelo,
+    t.ano,
+    t.mes,
+    COALESCE(vm.total_vendas, 0) AS total_vendas,
+    COALESCE(vm.faturacao, 0) AS faturacao,
+    COALESCE(vm.lucro_total, 0) AS lucro_total,
+    vm.margem_media_pct,
+    fm.sentimento_medio AS sentimento_forum,
+    fm.total_mencoes AS mencoes_forum
+FROM auto_escala_dw.dim_modelo dm
+CROSS JOIN (SELECT DISTINCT ano, mes FROM auto_escala_dw.dim_tempo) t
+LEFT JOIN vendas_mensais vm ON dm.modelo_key = vm.modelo_key AND t.ano = vm.ano AND t.mes = vm.mes
+LEFT JOIN forum_mensal fm ON dm.modelo_key = fm.modelo_key AND t.ano = fm.ano AND t.mes = fm.mes;
+
+-- View original de recomendação (mantida por compatibilidade - simplificada)
+CREATE OR REPLACE VIEW vw_recomendacao_alocacao_stock AS
+SELECT 
+    dm.marca, 
+    dm.modelo, 
+    ds.nome_stand,
+    ft.valor_interesse,
+    fp.valor_previsto as previsao
 FROM auto_escala_dw.fact_trends ft
-JOIN auto_escala_dw.dim_modelo             dm  ON ft.modelo_key      = dm.modelo_key
-JOIN auto_escala_dw.dim_stand              ds  ON 1=1
-JOIN auto_escala_dw.dim_localizacao        dl  ON ds.localizacao_key = dl.localizacao_key
-JOIN auto_escala_dw.dim_demografia_regional dr ON dl.localizacao_key = dr.localizacao_key
-WHERE ft.trending_flag = TRUE;
+JOIN auto_escala_dw.dim_modelo dm ON ft.modelo_key = dm.modelo_key
+JOIN auto_escala_dw.dim_stand ds ON ft.localizacao_key = ds.localizacao_key
+LEFT JOIN auto_escala_dw.fact_previsao fp ON ft.modelo_key = fp.modelo_key AND ft.tempo_key = fp.tempo_ref_key;
 
 -- =============================================================================
 -- ÍNDICES
@@ -488,7 +576,7 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('marca_modelo', 'toyota yaris',             'Toyota|Yaris'),
     ('marca_modelo', 'opel astra',               'Opel|Astra'),
     ('marca_modelo', 'opel corsa',               'Opel|Corsa'),
-    -- ✘ AUSENTES (quarentena): combinações não listadas continuam sem match
+    -- x AUSENTES (quarentena): combinações não listadas continuam sem match
 
     -- -------------------------------------------------------------------------
     -- COMBUSTÍVEIS  (campo = 'combustivel')
@@ -518,7 +606,7 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('combustivel', 'hibrido',               'Híbrido'),
     ('combustivel', 'gpl',                   'GPL'),
     ('combustivel', 'G.P.L.',                'GPL'),
-    -- ✘ AUSENTES (quarentena): H2, Biogás, Solar, Ar
+    -- x AUSENTES (quarentena): H2, Biogás, Solar, Ar
 
     -- -------------------------------------------------------------------------
     -- TIPOS DE AUTOMÓVEL  (campo = 'tipo_automovel')
@@ -536,6 +624,7 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('tipo_automovel', 'CITADINO',          'Citadino'),
     ('tipo_automovel', 'City',              'Citadino'),
     ('tipo_automovel', 'city car',          'Citadino'),
+    -- x AUSENTES (quarentena): Elétrico puro como tipo (Silver trata)
     ('tipo_automovel', 'elétrico',          'N/A'),
     ('tipo_automovel', 'elétricos',         'N/A'),
     ('tipo_automovel', 'Eletrico',          'N/A'),
@@ -555,7 +644,8 @@ def create_data_warehouse():
         print("Data Warehouse criado com sucesso!")
     except Exception as e:
         print("Ocorreu um erro ao criar o Data Warehouse.")
-        print(e)
+        # Usar repr para evitar UnicodeEncodeError no Windows console
+        print(repr(e))
 
 
 if __name__ == "__main__":

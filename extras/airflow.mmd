@@ -1,0 +1,59 @@
+flowchart LR
+    %% ===================================================
+    %% ORQUESTRAÇÃO AIRFLOW — Auto Escala
+    %% Dois DAGs: Mensal + Semanal
+    %% ===================================================
+
+    classDef dag      fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,font-weight:bold
+    classDef task     fill:#1e293b,stroke:#475569,color:#f1f5f9
+    classDef trigger  fill:#14532d,stroke:#22c55e,color:#dcfce7
+    classDef sched    fill:#3b0764,stroke:#a855f7,color:#f3e8ff
+    classDef ext      fill:#44403c,stroke:#78716c,color:#fafaf9
+
+    %% ─── SCHEDULER ──────────────────────────────────────
+    CRON_M(["🕐 Cron: 0 23 * * 0#1 <br/> 1º Domingo do mês <br/> 23:00 UTC"]):::sched
+    CRON_S(["🕐 Cron: 30 23 * * 0 <br/> Todos os Domingos <br/> 23:30 UTC"]):::sched
+
+    %% ─── DAG MENSAL ─────────────────────────────────────
+    subgraph DAG_M ["DAG: auto_escala_pipeline  (Mensal)"]
+        direction LR
+        M1["🟤 ingerir_inventario <br/> bronze_pipeline"]:::task
+        M2["🟤 ingerir_trends <br/> bronze_pipeline"]:::task
+        M3["🟤 ingerir_forum <br/> bronze_pipeline"]:::task
+        M4["⚪ silver_inventario <br/> silver_pipeline"]:::task
+        M5["⚪ silver_trends <br/> silver_pipeline"]:::task
+        M6["⚪ silver_forum <br/> silver_pipeline"]:::task
+        M7["🗄 load_to_postgres <br/> load_to_postgres"]:::task
+        M8["🔮 run_prophet <br/> prophet_model"]:::task
+
+        M1 --> M4
+        M2 --> M5
+        M3 --> M6
+        M4 & M5 & M6 --> M7
+        M7 --> M8
+    end
+
+    %% ─── DAG SEMANAL ─────────────────────────────────────
+    subgraph DAG_S ["DAG: auto_escala_hashtags_semanal  (Semanal)"]
+        direction LR
+        S1["🟤 ingerir_hashtags <br/> bronze_pipeline"]:::task
+        S2["⚪ silver_hashtags <br/> silver_pipeline"]:::task
+        S3["🗄 load_hashtags <br/> load_to_postgres"]:::task
+
+        S1 --> S2 --> S3
+    end
+
+    CRON_M --> DAG_M
+    CRON_S --> DAG_S
+
+    %% ─── DEMO / CI ───────────────────────────────────────
+    subgraph DEMO ["🎬 demo_simulacao.py  (Execução Manual)"]
+        direction TB
+        D1["① Reset <br/> DROP + CREATE schema"]:::trigger
+        D2["② Full Load 2022-2023 <br/> trigger DAG via REST API"]:::trigger
+        D3["③ Simula 2024 <br/> mês a mês + semana a semana <br/> poll até DAG Run concluir"]:::trigger
+        D1 --> D2 --> D3
+    end
+
+    D2 & D3 -. "POST /api/v1/dags/.../dagRuns" .-> DAG_M
+    D3 -. "POST /api/v1/dags/.../dagRuns" .-> DAG_S

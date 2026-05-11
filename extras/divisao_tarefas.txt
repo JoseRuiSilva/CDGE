@@ -1,0 +1,72 @@
+DIVISÃO DE TAREFAS — PROJETO AUTO ESCALA CDGE
+============================================
+
+O projeto entra agora na fase final de visualização e modelação avançada. O trabalho será dividido por 4 elementos, garantindo que as componentes de análise de dados e suporte à decisão são totalmente cobertas.
+
+--------------------------------------------------------------------------------
+ELEMENTO 1: ESPECIALISTA EM DATA SCIENCE (MODELAÇÃO PREDITIVA)
+--------------------------------------------------------------------------------
+Responsável pela criação do motor de previsão que alimentará os dashboards.
+
+* TAREFA: Desenvolver um script de modelação de séries temporais para prever a procura futura de modelos de automóveis.
+
+* ENTRADAS ESPERADAS:
+    - Dados Históricos de Vendas (da tabela de factos de vendas).
+    - Séries Temporais de Interesse Externo (da tabela de tendências (trends, forum, hashtags)).
+    - Dados de Contexto (Dimensão de Modelos/Marcas).
+
+* RESULTADOS ESPERADOS:
+    - Previsão de volume de procura/interesse para o próximo mês (t+1).
+    - Intervalos de confiança para a previsão (valor mínimo e máximo esperado).
+    - Cálculo de métricas de erro (ex: MAE, MAPE) para validar a precisão do modelo face aos dados passados.
+    - Exportação dos resultados para uma tabela de factos de previsão no PostgreSQL.
+
+* COMPORTAMENTO POR BATCH:
+    - A cada execução do pipeline (mensal), o modelo deve ler os novos dados integrados no DW.
+    - Deve gerar uma nova previsão baseada no histórico atualizado até à data do "watermark".
+    - A previsão deve ser sempre para o horizonte temporal seguinte ao último dado real disponível.
+
+--------------------------------------------------------------------------------
+ELEMENTO 2: ANALISTA BI (DASHBOARD GESTOR DE COMPRAS)
+--------------------------------------------------------------------------------
+Responsável pela interface de apoio à aquisição de inventário.
+
+* TAREFA: Criar o dashboard focado na identificação de oportunidades de mercado.
+
+* COMPONENTES CHAVE:
+    - Ranking de modelos com maior crescimento de tendência externa.
+    - Visualização de "Oportunidades de Compra": Cruzar modelos que têm alta tendência de procura mas baixa presença histórica em stock.
+    - Gráfico comparativo: Interesse Real vs. Previsão Gerada (pelo Elemento 1).
+    - Filtros por Categoria de Veículo e Região para segmentar a estratégia de compra.
+
+--------------------------------------------------------------------------------
+ELEMENTO 3: ANALISTA BI (DASHBOARD GESTOR DE STOCK)
+--------------------------------------------------------------------------------
+Responsável pela monitorização da saúde do inventário atual.
+
+* TAREFA: Criar o dashboard de controlo de ativos e rotação.
+
+* COMPONENTES CHAVE:
+    - Alertas de "Stock Parado": Identificar viaturas com dias em parque acima da média do mercado.
+    - Análise de Rotação por Stand: Comparar a velocidade de saída de carros em Braga, Porto e Lisboa.
+    - Cruzamento de Sentimento (Fórum/Hashtags) com Stock: Identificar se o stock atual condiz com a opinião pública (ex: muito stock de uma marca com sentimento negativo).
+    - Valor de Capital Imobilizado: Visualização do custo de aquisição parado em cada stand.
+
+--------------------------------------------------------------------------------
+ELEMENTO 4: ANALISTA BI (DASHBOARD ESTRATÉGICO / DIREÇÃO)
+--------------------------------------------------------------------------------
+Responsável pela visão macro e KPIs de negócio.
+
+* TAREFA: Criar a visão executiva para a tomada de decisão de alto nível.
+
+* COMPONENTES CHAVE:
+    - KPIs Globais: Faturação total, margem de lucro média e volume de vendas acumulado.
+    - Mapa de Performance Regional: Identificar quais os distritos/regiões com melhor desempenho financeiro.
+    - Evolução Temporal de Mercado: Comparar o crescimento da Auto Escala face às tendências gerais de mercado de anos anteriores.
+    - Share de Voz: Proporção de menções de marcas nas fontes sociais vs. volume de vendas real da empresa.
+
+--------------------------------------------------------------------------------
+NOTAS GERAIS PARA A EQUIPA:
+- As ferramentas de visualização devem ligar diretamente ao PostgreSQL.
+- O relatório final deve ser redigido em paralelo, documentando as opções tomadas em cada dashboard e no modelo.
+- Todos os elementos devem usar a paleta de cores institucional definida para manter a coerência visual. (CONVÉM DEFINIR ISTO!!!)

@@ -1,0 +1,47 @@
+﻿1. Contexto e Objetivo do Sistema
+* Domínio: Retalho especializado com foco na deteção precoce de tendências de produto.
+
+* Problema: Lidar com grandes volumes de dados, heterogeneidade (estruturados, semiestruturados e não estruturados) e volatilidade.
+
+* Finalidade: Antecipar alterações na procura e identificar oportunidades de negócio através da integração de múltiplas fontes.
+
+2. Requisitos de Dados e Arquitetura
+   * Fontes de Dados: O sistema deve integrar, obrigatoriamente, dados históricos de vendas e pelo menos uma fonte adicional de natureza distinta (ex: pesquisas online, opiniões de clientes/reviews ou dados de redes sociais).
+
+   * Processos de Engenharia: Devem ser implementadas as camadas de:
+      * Ingestão.
+
+      * Transformação e Limpeza.
+
+      * Integração e Preparação.
+
+         * Modelação: Definição e implementação dos sistemas de dados para suporte à integração, visualização e análise.
+
+3. Análise e Métricas (Machine Learning)
+            * Métricas Quantitativas: O grupo deve calcular taxas de crescimento, aceleração da procura e indicadores de situações extraordinárias.
+
+            * Modelação Preditiva: Aplicação de técnicas de análise de séries temporais para prever a procura de produtos ou categorias.
+
+            * Aprendizagem Máquina: O enunciado menciona a aplicação de modelos para deteção de tendências, embora note-se uma referência específica no ponto 7 à prevenção de churn (desistência de clientes) no contexto da empresa idealizada.
+
+            * Avaliação: É obrigatória a avaliação do desempenho dos modelos com métricas apropriadas e uma análise crítica dos resultados e limitações.
+
+4. Estrutura do Projeto (Os 9 Pontos Chave)
+O trabalho deve seguir estas etapas de desenvolvimento:
+               1. Definição e Objetivos: Contextualizar a empresa idealizada e as suas fontes de dados.
+
+               2. Viabilidade: Justificar os ganhos operacionais do projeto.
+
+               3. Plano de Execução: Caracterizar os serviços, componentes e plataformas de suporte.
+
+               4. Levantamento de Requisitos: Identificar requisitos do sistema e perfis de utilizador.
+
+               5. Modelação de Dados: Definir os tipos de sistemas de dados a implementar.
+
+               6. Sistema de Integração: Caracterizar como os dados vão povoar o sistema.
+
+               7. Visualização e Análise: Implementação dos modelos de ML e interface de análise.
+
+               8. Construção e Validação: Documentação das ferramentas utilizadas e validação técnica.
+
+               9. Análise Crítica: Discussão geral dos resultados e propostas de melhoria.

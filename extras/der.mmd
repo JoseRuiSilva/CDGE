@@ -1,0 +1,134 @@
+erDiagram
+    %% ===================================================
+    %% DER (Conceptual) — Auto Escala
+    %% Entidades de Negócio Reais (antes do Star Schema)
+    %% Atualizado: 2026-05-11
+    %% ===================================================
+
+    LOCALIZACAO ||--o{ STAND : "situa-se em"
+    LOCALIZACAO ||--o{ CLIENTE : "mora em"
+    LOCALIZACAO ||--o{ DEMOGRAFIA : "caracteriza"
+    LOCALIZACAO ||--o{ TENDENCIA_TRENDS : "ocorre em"
+
+    STAND ||--o{ INVENTARIO_MENSAL : "tem no parque"
+    STAND ||--o{ VENDA : "realiza"
+    
+    VIATURA ||--o{ INVENTARIO_MENSAL : "aparece em"
+    VIATURA ||--o{ VENDA : "é vendida em"
+    
+    MODELO ||--o{ VIATURA : "classifica"
+    MODELO ||--o{ TENDENCIA_TRENDS : "é pesquisado em"
+    MODELO ||--o{ SENTIMENTO_FORUM : "é discutido em"
+    MODELO ||--o{ VOLUME_HASHTAG : "é mencionado em"
+    MODELO ||--o{ PREVISAO_PROPHET : "é alvo de"
+
+    CLIENTE ||--o{ VENDA : "efetua"
+
+    FONTE ||--o{ TENDENCIA_TRENDS : "origina"
+    FONTE ||--o{ SENTIMENTO_FORUM : "origina"
+    FONTE ||--o{ VOLUME_HASHTAG : "origina"
+
+    LOCALIZACAO {
+        string distrito PK
+        string pais
+    }
+
+    STAND {
+        string nome_stand PK
+        string distrito FK
+    }
+
+    MODELO {
+        string marca
+        string modelo PK
+        string tipo_automovel
+        string combustivel
+    }
+
+    VIATURA {
+        string id_viatura PK
+        string matricula UK
+        int ano_viatura
+        int num_lugares
+    }
+
+    CLIENTE {
+        string nif PK
+        string nome
+        int idade
+        string faixa_etaria
+        string genero
+    }
+
+    DEMOGRAFIA {
+        string distrito PK
+        int ano_referencia PK
+        int populacao_total
+        decimal pct_masculino
+        decimal pct_feminino
+    }
+
+    INVENTARIO_MENSAL {
+        date data_snapshot PK "Último dia do mês"
+        string stand PK
+        string id_viatura PK
+        decimal preco_aquisicao "Valor em stock"
+        int dias_em_parque "Days on Lot"
+    }
+
+    VENDA {
+        string id_viatura PK
+        string stand PK
+        date data_entrada
+        date data_venda
+        decimal preco_aquisicao
+        decimal preco_venda
+        decimal margem
+        int dias_em_stock
+    }
+
+    FONTE {
+        string nome_fonte PK "Google Trends / Fórum / Hashtags"
+        string tipo_fonte "Interna / Externa"
+    }
+
+    TENDENCIA_TRENDS {
+        date mes PK
+        string distrito PK
+        string modelo PK
+        int valor_interesse "0-100 (Google Trends)"
+        float crescimento_mom_pct
+        boolean trending_flag
+    }
+
+    SENTIMENTO_FORUM {
+        date mes PK
+        string modelo PK
+        int n_mencoes
+        float score_sentimento "NLP [-1, +1]"
+        float delta_sentimento
+    }
+
+    PREVISAO_PROPHET {
+        string modelo PK
+        date data_ref PK
+        date data_alvo PK
+        float valor_previsto
+        float mae
+    }
+
+    HASHTAG {
+        string hashtag PK
+        string categoria
+    }
+
+    VOLUME_HASHTAG {
+        string modelo PK
+        date semana PK
+        string fonte PK
+        int volume
+        int posts_instagram
+        int posts_twitter
+        int posts_youtube
+        float variacao_semanal
+    }

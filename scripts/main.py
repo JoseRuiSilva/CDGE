@@ -40,7 +40,7 @@ from bronze_pipeline import run_bronze  # noqa: E402
 from silver_pipeline import run_silver  # noqa: E402
 from generate_dw import create_data_warehouse  # noqa: E402
 from load_to_postgres import run_load_to_postgres  # noqa: E402
-from prophet_model import run_prophet  # noqa: E402
+from forecast_simple import run_simple_forecast  # noqa: E402
 from data_profiling import run_profiling  # noqa: E402
 
 # ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ def correr_full_load(engine, nlp_habilitado: bool = True):
     run_silver(**{f"ficheiros_{k}": [str(f) for f in v] for k, v in ficheiros.items()}, nlp_habilitado=nlp_habilitado)
     #run_profiling()
     run_load_to_postgres(mode="full_load")
-    run_prophet()
+    run_simple_forecast()
     for fonte in FONTES:
         if ficheiros[fonte]:
             dt_max = max((_PARSERS[fonte](f) for f in ficheiros[fonte]), default=FULL_LOAD_LIMITE)
@@ -168,7 +168,7 @@ def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True):
     run_bronze(**{f"ficheiros_{k}": v for k, v in ficheiros.items()})
     run_silver(**{f"ficheiros_{k}": [str(f) for f in v] for k, v in ficheiros.items()}, nlp_habilitado=nlp_habilitado)
     run_load_to_postgres(mode="incremental")
-    run_prophet()
+    run_simple_forecast()
     for fonte in FONTES:
         if ficheiros[fonte]:
             dt_max = max((_PARSERS[fonte](f) for f in ficheiros[fonte]), default=data_limite)

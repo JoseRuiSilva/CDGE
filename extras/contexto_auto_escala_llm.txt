@@ -1,0 +1,71 @@
+PROJETO CDGE — AUTO ESCALA
+UC: Ciências de Dados em Grande Escala | Lic. Ciência de Dados 3º Ano | U.Minho 2025/2026
+Grupo de 4 elementos. Professor: Orlando Belo (obelo@di.uminho.pt).
+
+== CONTEXTO DE NEGÓCIO ==
+A Auto Escala é uma rede fictícia de stands de automóveis usados/seminovos em Portugal. O problema central é que as decisões de compra de stock são reativas — o sistema proposto antecipa tendências de procura cruzando dados internos com sinais externos. Pergunta central: "O que devo comprar hoje para não ficar com dinheiro parado amanhã?" Decisões suportadas: que modelos adquirir, qual o score de tendência de cada modelo, que modelos priorizar por crescimento de interesse + sentimento. PoC com 3 stands (Lisboa, Porto, Braga); arquitetura suporta ~100 stands sem redesign porque o código lê pastas dinamicamente.
+
+== O QUE É PEDIDO (enunciado) ==
+Tema: "Análise de Tendências de Aquisição de Produtos em Retalho Especializado". Requisitos obrigatórios: dados históricos de vendas + pelo menos 1 fonte adicional de natureza distinta; camadas de ingestão, transformação/limpeza, integração/preparação; modelação de dados (star schema); métricas quantitativas (taxas de crescimento, aceleração de procura, indicadores de situações extraordinárias); séries temporais preditivas com avaliação (MAE, MAPE, etc.); BPMN do processo de integração (obrigatório na secção 3.5 do relatório). Estrutura do relatório: 1.Definição e Objetivos, 2.Viabilidade, 3.Plano+BPMN, 4.Levantamento de Requisitos, 5.Modelação de Dados, 6.Sistema de Integração, 7.Visualização e Análise (ML+dashboards), 8.Construção e Validação, 9.Análise Crítica.
+
+== ARQUITETURA IMPLEMENTADA ==
+Medallion Architecture: Landing Zone (CSV/JSON/TXT/XML) → Bronze (Delta Lake, append, dados brutos + metadados) → Silver (Delta Lake, MERGE/UPSERT por Business Key, dados limpos + NLP) → PostgreSQL Star Schema (serve como Gold/serving layer) → Power BI.
+
+Stack: Python + pandas (ETL, NLP, Prophet), delta-rs (Delta Lake sem Spark/JVM), PostgreSQL + pgAdmin via Docker Compose, Prophet (Meta) para séries temporais, BERT-pt ou VADER+tradução para NLP em português, Power BI com conector nativo PostgreSQL, bpmn.io para BPMN. Sem Spark (pandas+delta-rs suficiente para PoC), sem Kafka (batch mensal não justifica streaming), sem Airflow (main.py com --data_limite mais transparente academicamente).
+
+== FONTES DE DADOS (4 fontes) ==
+Fonte 1 — Inventário/Vendas (ESTRUTURADO): CSV, um ficheiro por stand por mês. Colunas: matricula (BK), marca, modelo, ano_viatura, combustivel, quilometragem, preco_aquisicao, data_entrada_stock, preco_venda (NULL até venda), data_venda (NULL em stock), stand. Sazonalidade: verão→descapotáveis/elétricos, inverno→SUVs. 1% erros intencionais (ex: "VW" em vez de "Volkswagen"). Path: data/sources/stands/{lisboa,porto,braga}/YYYY_MM_stand.csv. Gerado por generate_inventory.py.
+
+Fonte 2 — Google Trends/SerpAPI (SEMI-ESTRUTURADO): JSON mensal, interesse 0-100 por marca/modelo por região PT. Estrutura: {"extraction_metadata": {...}, "data": [{"termo":"VW Golf usado","regiao":"Porto","mes":"2024-03","valor_interesse":72}]}. Path: data/sources/trends/YYYY/MM/trends_YYYYMM.json. Gerado por generate_trends.py (sintético se SerpAPI indisponível).
+
+Fonte 3 — Fórum motorguia.net (NÃO ESTRUTURADO): TXT bruto, output direto de BeautifulSoup .get_text() sobre HTML do fórum — sem schema, sem separadores entre posts (navegação + usernames + títulos + corpo de posts misturados). Periodicidade mensal. Bronze guarda 1 linha por ficheiro (texto completo como string). Silver faz segmentação e NLP. Path: data/sources/forum/YYYY/MM/forum_YYYYMM.txt. Gerado por generate_forum.py.
+
+Fonte 4 — Hashtags Social Listening (SEMI-ESTRUTURADO): XML Atom Feed semanal com namespace sl (estilo Talkwalker/Mention). Volume diário de menções por hashtag em PT, desagregado por plataforma (Instagram, Twitter, YouTube). Hashtags: #SUV, #carrosusados, #carroeletrico, #hibrido, #volkswagengolf, #toyotayaris, #bmw, #mercedes, #testdrive, #carroNovo. Path: data/sources/hashtags/YYYY/WNN/hashtags_YYYYWNN.xml. Gerado por generate_hashtags.py.
+
+== BRONZE ==
+Objetivo: preservar dados brutos sem transformação. Metadados adicionados: ingestion_timestamp (simulado = fim do período do ficheiro), source_file, source_stand (só inventário). Controlo de duplicados: salta se source_file já existe no Delta. Para hashtags: converte cada XML entry para registo flat antes do append. Tabelas em data_lake/bronze/{inventario,trends,forum,hashtags}_delta/.
+
+== SILVER ==
+Objetivo: dados limpos, tipados, normalizados, NLP aplicado, sem duplicados. Inventário: trim + normalização nulos textuais → NA real; cast datas→datetime UTC, preços→float, km→int; normalização marca/modelo via dim_dicionario_veiculo; registos com campos críticos nulos vão para quarentena_delta. Trends: cast valor_interesse→int, mes→date, fill nulos com 0. Forum: segmentação por heurísticas (usernames, padrões de navegação), extração de menções a marcas/modelos, análise de sentimento (BERT-pt ou VADER+tradução) → score [-1,+1] por chunk. Hashtags: soma por semana, cálculo de variacao_semanal. MERGE/UPSERT por Business Key em todas as tabelas Silver.
+
+== STAR SCHEMA (PostgreSQL) ==
+Dimensões: dim_veiculo (veiculo_id PK, marca, modelo, combustivel, segmento, versao_normalizada), dim_stand (stand_id PK, nome, cidade, regiao), dim_tempo (tempo_id PK, data_completa, semana, mes, trimestre, ano), dim_fonte (fonte_id PK, nome_fonte, tipo_dado, frequencia), dim_hashtag (hashtag_id PK, hashtag, categoria_veiculo), dim_dicionario_veiculo (valor_original, valor_normalizado, tipo, fonte_origem).
+
+Factos: fact_vendas (id_viatura PK, veiculo_id FK, stand_id FK, tempo_entrada_id FK, tempo_venda_id FK nullable, quilometragem, preco_aquisicao, preco_venda, dias_em_stock, margem). fact_tendencias (id_tendencia PK, veiculo_id FK, tempo_id FK, regiao, score_interesse, crescimento_mom_pct, score_sentimento, delta_sentimento, trending_flag, previsao_prox_mes, score_tendencia_composto). fact_hashtag_volume (id_hashtag_vol PK, hashtag_id FK, modelo_id FK nullable, data_id FK, total_posts, posts_instagram, posts_twitter, posts_youtube, variacao_semanal).
+
+Controlo: pipeline_control (source_name, last_processed_date, last_run_at, status, records_loaded, records_quarantine).
+
+Vistas: vw_oportunidades → fact_tendencias WHERE trending_flag=TRUE ORDER BY score_tendencia_composto DESC. vw_stock_alerta → fact_vendas WHERE data_venda IS NULL AND dias_em_stock > média histórica do modelo.
+
+== CDC / CARGA INCREMENTAL ==
+Terminologia correta: Watermark-Based Incremental Load / Audit-Based CDC (não trigger-based). Watermark guardado em pipeline_control no PostgreSQL (não ficheiro externo). Atomicidade: last_processed_date só atualiza após commit bem-sucedido. Full Load (histórico 2022-2023): corre uma vez, sem verificação de watermark, inicializa pipeline_control no final. Incremental Load (2024+): lê last_processed_date por fonte → filtra ficheiros com data > last_processed_date E ≤ --data_limite → Append Bronze → MERGE Silver → UPSERT PostgreSQL → atualiza watermark.
+
+== DETEÇÃO DE TENDÊNCIAS ==
+Tier 1 — Regras SQL com LAG() no PostgreSQL: trending_flag = TRUE quando crescimento_mom_pct ≥ 30% (variação score_interesse Trends) E delta_sentimento ≥ 0.3 (variação score NLP fórum). Thresholds por análise de sensibilidade documentada na secção 5.3.
+
+Tier 2 — Prophet (Python): entrada = score_interesse mensal por modelo; horizonte = t+1 (próximo mês); validação = treino até N-3, previsão de N-2/N-1/N; métricas = MAE + MAPE + gráficos; output = previsao_prox_mes escrito em fact_tendencias. Limitação a declarar: dados sintéticos → Prophet performa bem porque os padrões são controlados; mitigar com ruído realista e split temporal estrito.
+
+Score composto [0-100] via percentil sobre janela de 12 meses: crescimento_mom_pct (Trends) + delta_sentimento (Fórum) + variacao_semanal (Hashtags) → recomendação final via vw_oportunidades.
+
+== DASHBOARDS POWER BI ==
+DB1 — Gestor de Compras ("O que devo comprar esta semana?"): top modelos por crescimento de interesse, lista de oportunidades (trending + sentimento + buzz), evolução mensal, filtros marca/combustível/região. Consome vw_oportunidades + fact_hashtag_volume.
+DB2 — Gestor de Stock ("O que está parado?"): viaturas acima da média de dias em stock, alertas por stand, filtros. Consome vw_stock_alerta.
+DB3 — Direção ("Como está o negócio?"): KPIs gerais (total vendas, margem média, rotação), tendências por região, comparação entre stands, evolução temporal. Consome star schema direto.
+
+== SCRIPTS ==
+generate_inventory.py, generate_trends.py, generate_forum.py, generate_hashtags.py → geradores de dados sintéticos.
+bronze_pipeline.py → landing zone → Delta append (4 fontes).
+silver_pipeline.py → limpeza + NLP + quarentena + MERGE Delta (4 fontes).
+load_to_postgres.py → UPSERT no star schema.
+cdc_pipeline.py → lê/escreve watermark em pipeline_control.
+prophet_model.py → treino + previsão + escreve previsao_prox_mes.
+main.py → orquestra tudo com --mode [full_load|incremental] e --data_limite YYYY-MM-DD.
+simulate_batches.py → chama main.py com datas crescentes mês a mês (demo ao professor).
+
+== ESTADO ATUAL (maio 2026) ==
+FEITO: generate_inventory.py (funcional, validado), generate_trends.py (implementado, adaptações de pastas pendentes), bronze_pipeline.py (inventário funcional; trends/forum/hashtags a adaptar para novas estruturas de pastas), docker-compose.yaml (PostgreSQL + pgAdmin a correr), Relatório Partes 1 e 2 (base sólida com alguns placeholders).
+A ADAPTAR (não refeito): generate_trends.py (nova estrutura de pastas e JSON), bronze_pipeline.py (leitura de trends, forum, hashtags).
+POR FAZER: generate_forum.py (era JSON de scraper, agora é TXT bruto mensal), generate_hashtags.py, schema SQL PostgreSQL completo, silver_pipeline.py, load_to_postgres.py, cdc_pipeline.py, main.py, simulate_batches.py, prophet_model.py, Relatório Partes 3-6, Power BI (3 dashboards), BPMN do pipeline (obrigatório).
+
+== CONVENÇÕES DE CÓDIGO ==
+Linguagem dos comentários: português. Sem Spark. Funções modulares. Gracioso em erros e ficheiros ausentes. Alinhado com o estilo do bronze_pipeline.py existente (delta-rs, pandas).

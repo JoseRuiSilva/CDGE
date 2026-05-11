@@ -61,15 +61,16 @@ projeto_auto_escala/
 │   ├── generate_trends.py            # Gerador de JSON de tendências Google
 │   ├── generate_forum.py             # Gerador de posts TXT do fórum
 │   ├── generate_hashtags.py          # Gerador de métricas XML de hashtags
-│   ├── generate_dw.py                # DDL do Star Schema + lookup table de normalização
+│   ├── generate_clientes.py          # Gerador de perfis de clientes (NIF, Idade, etc.)
+│   ├── generate_demografia.py        # Gerador de dados populacionais INE
+│   ├── generate_dw.py                # DDL do Star Schema + views de negócio
+│   ├── main.py                       # Orquestrador Unificado (Full Load, Incremental, Simulate, Demo)
 │   ├── bronze_pipeline.py            # Landing Zone → Bronze (Delta append)
 │   ├── silver_pipeline.py            # Bronze → Silver (limpeza, NLP, quarentena)
 │   ├── load_to_postgres.py           # Silver → PostgreSQL (UPSERT / SCD Tipo 1)
-│   ├── prophet_model.py              # Forecasting com Facebook Prophet
-│   ├── data_profiling.py             # Relatórios de qualidade de dados (Bronze)
-│   ├── main.py                       # Orquestrador (Full Load / Incremental)
-│   ├── demo_simulacao.py             # Demo completa via Airflow REST API  ← USAR PARA DEMO
-│   └── airflow_trigger_simulation.py # Utilitário de trigger individual por DAG
+│   ├── forecast_simple.py            # Forecasting Heurístico (Multicritério)
+│   ├── prophet_model.py              # Forecasting Prophet (Descontinuado)
+│   └── data_profiling.py             # Relatórios de qualidade de dados (Bronze)
 ├── extras/
 │   └── lembretes.txt                 # Notas internas da equipa
 ├── requirements.txt
@@ -102,6 +103,8 @@ python scripts/generate_inventory.py
 python scripts/generate_trends.py
 python scripts/generate_forum.py
 python scripts/generate_hashtags.py
+python scripts/generate_clientes.py
+python scripts/generate_demografia.py
 ```
 
 ### 3 — Arrancar todos os serviços (Docker)
@@ -120,31 +123,29 @@ Serviços disponíveis após arranque (~2 min):
 | pgAdmin | http://localhost:5052 | admin@autoescala.pt / admin2026 |
 | PostgreSQL | localhost:5432 | ae_user / ae_pass_2026 |
 
-### 4 — Correr a demo completa
+### 4 — Correr a demo completa (via Airflow)
 
 ```bash
-python scripts/demo_simulacao.py
+python scripts/main.py --mode demo --aguardar
 ```
 
-O script faz automaticamente, por esta ordem:
-
-1. **Reset** — recria o schema PostgreSQL e limpa o Delta Lake
-2. **Full Load** — processa o histórico 2022–2023 via Airflow
-3. **Simulação 2024** — simula semana a semana (hashtags) e mês a mês (restantes fontes), esperando que cada DAG Run conclua antes de iniciar o seguinte
+O comando faz automaticamente:
+1. **Full Load (2022–2023)** — Processa o histórico via Airflow.
+2. **Simulação 2024** — Dispara batches mensais sequencialmente, aguardando que cada um termine antes de iniciar o seguinte.
 
 Podes acompanhar o progresso em tempo real na **Airflow UI** (http://localhost:8080).
 
-**Opções do script:**
+**Outros Modos de Simulação:**
 
 ```bash
-# Apenas a simulação (sem reset nem full load)
-python scripts/demo_simulacao.py --skip-reset --skip-full-load
+# Simulação local (sem precisar do Airflow - útil para debug rápido)
+python scripts/main.py --mode simulate --desde 2024-01 --ate 2024-06
 
-# Um mês específico
-python scripts/demo_simulacao.py --skip-reset --skip-full-load --desde 2024-06 --ate 2024-06
+# Reset completo do ambiente (Data Lake + Data Warehouse)
+python scripts/main.py --mode reset
 
-# Full load sem simulação
-python scripts/demo_simulacao.py --skip-simulacao
+# Simulação sem NLP (processamento ultra-rápido)
+python scripts/main.py --mode demo --no-nlp
 ```
 
 ---

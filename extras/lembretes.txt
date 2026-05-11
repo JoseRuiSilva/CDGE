@@ -1,0 +1,94 @@
+LEMBRETES — Auto Escala CDGE
+==============================
+Criado em: 2026-05-07
+
+PENDENTES
+---------
+
+A ideia das vendas é que elas servem para comprovar o modelo. Se o molelo diz estes carros vao ser mais populares/ser
+mais comprados no próximo mes, então as vendas devem refletir isso. As vendas servem para o treino do modelo.
+
+[x] VER MODELO PROPHET COM O ZÉPAULA
+    - Verificar se as previsões fazem sentido com os dados actuais
+    - Verificar se o horizonte de previsão (1 mês) é adequado
+    - Considerar se vale a pena mostrar um gráfico na apresentação
+    - Verificar se o modelo está a treinar com dados suficientes (mínimo 2 pontos por modelo_key)
+
+[x] VERIFICAR VELOCIDADE DO AIRFLOW NA DEMO
+    - Correr a demo_simulacao.py com dados reduzidos e cronometrar
+    - Se cada batch demorar mais de 45s, considerar mudar Full Load para main.py directo
+    - O overhead do Airflow é ~10-30s por Run (scheduler poll)
+    - Se demorar muito: adicionar flag --sem-airflow ao demo_simulacao.py
+
+[x] VERIFICAR IMPLEMENTAÇÃO DE INFORMACAO DE CLIENTES E DEMOGRAFIA DE LOCALIZAÇÃO 
+
+[x] VERIFICAR IMPLEMENTAÇÃO DE FACTO DE INVENTARIO
+
+[x] VERIFICAR GERADOR DE INVENTARIO PARA SABER SE ESTA A GUARDAR OS CARROS QUE FORAM
+    COMPRADOS MAS NAO FORAM VENDIDOS PARA MESES SEGUINTES
+
+[x] FAZER UM RESUMO DAS MUDANÇAS FEITAS
+
+[x] VERIFICAR HASHTAG (NAO ESTA A IR BUSCAR MODELO)
+
+[x] VERIFICAR TODO O SILVER
+    - Se esta a funcionar corretamente
+    - Verificar os resultados
+    - Verificar o NLP porque parece estar a devolver tudo 0
+
+[ ] COMPROVAR FUNCIONAMENTO DO MODELO DE PREVISAO
+    - Que dados esta a usar
+    - O que preve
+    - Como é calculada a métrica de previsão
+    - Que outros modelos poderia usar
+    - Testar se ARIMA pode ser aplicado
+
+[ ] PENSAR NO QUE VAI SER O MEU RESULTADO FINAL
+    - Dashboards que mostram o progresso de um modelo no crescimento (previsão por análise de dados)
+    - Previsao de um modelo para a tendencia de um modelo/marca de carro
+    - Mistura dos dois com dashboards a usar o resultado do modelo de previsão
+
+[x] VERIFICAR TABELAS FINAIS
+    - Questão sobre a criação das tabelas: Os valores de modelos e assim são adicionados na tabela se forem novos? Ou da algum erro?
+    - audit_log_dimensions vazia
+    - dim_cliente correta
+    - dim_demografia_regiao parece correta
+    - dim_dicionario_veiculo (lookup table) parece correta
+    - dim_fonte não é exatamente aquilo que estava pensado, não tem inta, youtube etc.
+    - dim_hashtag com categoria nula, nem sei pqq isto está aqui, porque não por diretamente na fact_hashtag
+    - a 1ª linha da dim_modelo esta estranha "1	"N/A"	"N/A"	"SUV"	"N/A"" o resto parece bem
+    - dim_stand tem um "lisboa" e outro "LISBOA". cidade e distrito a nulo. cidade nem é preciso ter.
+    - dim_tempo ok
+    - dim_veiculo ok
+    - fct_hashtag_volume varios modelos nulos, esta so a apanhar o 23 volkswagen golf. Primeros 10 valores com variacao semanal 
+    nula, sei que é por nao ter nada na semana anterior, mas seria melhor se dissesse 0 ou -1. Depois tem a cena dos posts por fonte.
+    Na minha ideia isto ia buscar a fonte, mas assim até é melhor então pode ficar assim.
+    - fct_inventario mensal parece bem
+    - na fct_venda, já não faz sentido ter vendido = true, se ela só guarda os que foram vendidos
+    - ficheiro de origem na pipeline_control como nulo
+    - a view está vazia
+
+
+[x] VERIFICAR TABELAS FINAIS
+    - na pipeline_control, ficheiro_origem "Lote Histórico"? Entao se fizesse da simulacao ia dizer simulacao? Nao deveria
+     dizer o nome do ficheiro que é guardado no bronze ("source_file")?
+    - a fact_hashtag está muito estranha, ele tem 1 hashtag_key ligado a vários modelo_key? Devia ser só 1. E ate os que 
+    estão ligados são estranhos. Tipo o hashtag "carros usados, geral" está ligado ao SUV e Elétrico. (Solução: retira 9	"#testdrive"	"intenção de compra"
+10	"#carroNovo"	"geral" 2	"#carrosusados"	"geral" do gerador de hashtags, só está a dar trabalho)
+    - dim_modelo também ficou muito estranho agora. Os primeiros estão bem, mas os últimos são Elétrico em modelo, SUV em
+    modelo e tipo automovel, Yaris Toyota Yaris em modelo tipo_automovel respetivamente, etc.
+
+[x] POR SIMULACOES TODAS NO MESMO CODIGO
+     
+[x] VERIFICAR CLIENTES E INFORMACAO DEMOGRAFICA
+    - Não está a ser criada e alterada com o tempo
+
+CONCLUÍDOS
+----------
+
+[x] DAG semanal hashtags implementada (domingo 23:30)
+[x] DAG mensal no primeiro domingo do mês
+[x] Lookup table do generate_dw.py verificada e actualizada
+[x] script demo_simulacao.py criado
+[x] PG_HOST configurável via env var em todos os scripts
+[x] Airflow funcional (scheduler + webserver healthy)

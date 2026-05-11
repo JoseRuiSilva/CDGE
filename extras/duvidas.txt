@@ -1,0 +1,8 @@
+Anos nas dimensões liga a dim_tempo?
+Nulos em crescimento_mom_pct e delta_sentimento.
+Afinal é para ter churn ou não? Ponto 7 pagina 3.
+Perguntar sobre o LT/ETL do modelo. Ele põe no Postgres e só depois vai lá buscar (E), usa o modelo para transformar os valores históricos numa previsão (T) e depois volta ao PotgreSQL (L).
+Faz sentido haver batch semanal das hashtags? Ou seria mais compreensível guardar em algum lado e só por depois no DW no batch mensal? Isto pq não temos análises semanais.
+SCD Tipo 1 com tiggers de log.
+Afinal é fact_* ou fct_*?
+Seria mais fácil para a nossa previsão se os nossos dados das várias fontes usassem os mesmos modelo. No "mundo real", nós se calhar modavamos com base nos nossos conhecimentos do mercado.

@@ -71,6 +71,6 @@ relatorio/*.out
 relatorio/*.toc
 
 # ── Ficheiros adicionais para uso próprio ────────────────────────────────────
-extras/
+#extras/
 scripts_extra/
 vehicles.py

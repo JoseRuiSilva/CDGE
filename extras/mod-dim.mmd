@@ -1,0 +1,187 @@
+erDiagram
+    %% ===================================================
+    %% MODELO DIMENSIONAL — Auto Escala DW (Star Schema)
+    %% Atualizado: 2026-05-11
+    %% ===================================================
+
+    %% ─── DIMENSÕES ─────────────────────────────────────
+
+    dim_localizacao {
+        int localizacao_key PK
+        string distrito UK
+        string pais
+    }
+
+    dim_stand {
+        int stand_key PK
+        string nome_stand UK
+        int localizacao_key FK
+    }
+
+    dim_tempo {
+        int tempo_key PK
+        date data UK
+        int ano
+        int mes
+        int dia
+        int trimestre
+        string nome_mes
+        int semana_ano
+    }
+
+    dim_modelo {
+        int modelo_key PK
+        string marca
+        string modelo
+        string tipo_automovel
+        string combustivel
+    }
+
+    dim_veiculo {
+        int veiculo_key PK
+        string id_viatura UK
+        string matricula
+        int modelo_key FK
+        int num_lugares
+        int ano_viatura
+    }
+
+    dim_cliente {
+        int cliente_key PK
+        string nif UK
+        string nome
+        int idade
+        string faixa_etaria
+        string genero
+        int localizacao_key FK
+    }
+
+    dim_demografia_regional {
+        int demografia_key PK
+        int localizacao_key FK
+        int ano_referencia
+        int populacao_total
+        decimal pct_18_24
+        decimal pct_25_34
+        decimal pct_35_49
+        decimal pct_50_64
+        decimal pct_65_mais
+        decimal pct_masculino
+        decimal pct_feminino
+    }
+
+    dim_fonte {
+        int fonte_key PK
+        string nome_fonte UK
+        string tipo_fonte
+        string descricao
+    }
+
+    dim_dicionario_veiculo {
+        int dicionario_key PK
+        string campo
+        string valor_original UK
+        string valor_normalizado
+        boolean ativo
+        timestamp data_criacao
+    }
+
+    %% ─── FACTOS ─────────────────────────────────────────
+
+    fct_venda {
+        int venda_key PK
+        int veiculo_key FK
+        int stand_key FK
+        int tempo_entrada_key FK
+        int tempo_venda_key FK
+        int cliente_key FK
+        int quilometragem
+        decimal preco_aquisicao
+        decimal preco_venda
+        decimal margem
+        int dias_em_stock
+    }
+
+    fct_inventario_mensal {
+        int inventario_key PK
+        int tempo_key FK
+        int stand_key FK
+        int veiculo_key FK
+        decimal valor_em_stock
+        int dias_em_parque
+    }
+
+    fact_trends {
+        int tendencia_key PK
+        int tempo_key FK
+        int modelo_key FK
+        int localizacao_key FK
+        int valor_interesse
+        decimal crescimento_mom_pct
+        boolean trending_flag
+    }
+
+    fact_forum_sentiment {
+        int sentimento_key PK
+        int tempo_key FK
+        int modelo_key FK
+        int n_mencoes
+        decimal score_sentimento
+        decimal delta_sentimento
+    }
+
+    fct_hashtag_volume {
+        int hashtag_volume_key PK
+        int tempo_key FK
+        int fonte_key FK
+        int modelo_key FK
+        int volume
+        int posts_instagram
+        int posts_twitter
+        int posts_youtube
+        decimal variacao_semanal
+    }
+
+    fact_previsao {
+        int previsao_key PK
+        int modelo_key FK
+        int tempo_ref_key FK
+        int tempo_alvo_key FK
+        decimal valor_previsto
+        decimal yhat_lower
+        decimal yhat_upper
+        decimal mae
+        decimal mape
+    }
+
+    %% ─── RELACIONAMENTOS ────────────────────────────────
+
+    dim_localizacao ||--o{ dim_stand : ""
+    dim_localizacao ||--o{ dim_cliente : ""
+    dim_localizacao ||--o{ dim_demografia_regional : ""
+    dim_localizacao ||--o{ fact_trends : ""
+
+    dim_modelo ||--o{ dim_veiculo : ""
+    dim_modelo ||--o{ fact_trends : ""
+    dim_modelo ||--o{ fact_forum_sentiment : ""
+    dim_modelo ||--o{ fct_hashtag_volume : ""
+    dim_modelo ||--o{ fact_previsao : ""
+
+    dim_veiculo ||--o{ fct_venda : ""
+    dim_veiculo ||--o{ fct_inventario_mensal : ""
+
+    dim_stand ||--o{ fct_venda : ""
+    dim_stand ||--o{ fct_inventario_mensal : ""
+
+    dim_cliente ||--o{ fct_venda : ""
+
+    dim_tempo ||--o{ fct_venda : "entrada"
+    dim_tempo ||--o{ fct_venda : "venda"
+    dim_tempo ||--o{ fct_inventario_mensal : "snapshot"
+    dim_tempo ||--o{ fact_trends : ""
+    dim_tempo ||--o{ fact_forum_sentiment : ""
+    dim_tempo ||--o{ fct_hashtag_volume : ""
+    dim_tempo ||--o{ fact_previsao : "referencia"
+    dim_tempo ||--o{ fact_previsao : "alvo"
+
+    dim_fonte ||--o{ fct_hashtag_volume : ""
