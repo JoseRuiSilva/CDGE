@@ -16,6 +16,7 @@ import re
 import sys
 import time
 import socket
+import pyarrow.compute as pc
 
 # Fix para conflito de OpenMP (libiomp5md.dll) que faz o pysentimiento crashar/devolver 0.0
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -111,6 +112,9 @@ _REGEX_RUIDO_FORUM = re.compile(
     r"|^\d+\s*$)",
     re.IGNORECASE,
 )
+
+_REGEX_PAGINACAO = re.compile(r"Pagina \d+ de \d+", re.IGNORECASE)
+
 # Linha de cabeçalho de post: "username  |  YYYY-MM"
 _REGEX_CABECALHO_POST = re.compile(r"^[\w_\-]+\s{2,}\|\s{2,}\d{4}-\d{2}$")
 
@@ -120,18 +124,24 @@ _RUIDO_LITERAIS_FORUM = [
     "motorguia.net Forum Automovel Portugues Registo Login Pesquisar",
     "Bem-vindo convidado Entrar Registar Topicos Recentes Atividade",
     "Novos Posts Ajuda Calendario Comunidade Forum Regras Utilizadores",
-    "Topicos Recentes 1 2 3 ... 24 Proxima Pagina Anterior Ir para o topo",
     "Contactos Arquivo Politica de Privacidade Termos de Utilizacao",
     "motorguia.net 2005-2026 Todos os direitos reservados",
     "Ver perfil Responder Citar",
-    "Pagina 1 de 2", "Pagina 2 de 3", "Pagina 1 de 3", "Pagina 1 de 4",
-    "Pagina 2 de 2",
+    "Ir para o topo",
+    "Topicos Recentes",
+    "Proxima Pagina Anterior"
 ]
 # Metadata de utilizador: "Membro desde Mar 2017 892 posts" / "Senior Member 3401 posts"
 _REGEX_METADATA_UTILIZADOR = re.compile(
-    r"(?:Membro|Senior\s+Member|Utilizador\s+registado)[^.]{0,80}posts",
-    re.IGNORECASE,
+    r"("
+    r"([\w_]+\s+)?Membro desde [a-zA-Z]+ \d{4} \d+ posts|"
+    r"Senior Member \d+ posts|"
+    r"Utilizador registado desde \d{4}"
+    r")",
+    re.IGNORECASE
 )
+
+_REGEX_URLS = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 
 
 # ─── UTILITÁRIOS GERAIS ───────────────────────────────────────────────────────
@@ -139,14 +149,17 @@ _REGEX_METADATA_UTILIZADOR = re.compile(
 def _normalizar_para_lookup(valor: str) -> str:
     """
     Pré-processa um valor antes de o comparar com o dicionário:
-    lowercase + trim + colapsa espaços múltiplos + remove caracteres especiais.
-    Assim o dicionário só precisa de ter entradas simples (ex: 'vw', não 'VW' e ' VW ').
+    lowercase + trim + colapsa espaços múltiplos.
+
+    Não remove '.' nem '%' para preservar "ID.4" e "100% Elétrico".
+    Remove apenas caracteres que nunca aparecem em chaves do dicionário
+    (vírgulas, ponto-e-vírgulas, parênteses, aspas).
     """
     if pd.isna(valor) or not isinstance(valor, str):
         return ""
     texto = valor.lower().strip()
     texto = re.sub(r"\s+", " ", texto)
-    texto = re.sub(r"[^\w\s]", "", texto)
+    texto = re.sub(r"[,;()'\"\\]", "", texto)
     return texto
 
 
@@ -221,36 +234,76 @@ def _lookup(valor: str, campo: str, dicionario_map: dict) -> str | None:
 
 
 def _lookup_trends(termo: str, dicionario_map: dict) -> tuple:
-    """Lookup por substring para Google Trends."""
+    """
+    Lookup por substring para Google Trends.
+    Tenta primeiro marca_modelo (ex: 'vw golf' -> 'Volkswagen|Golf'),
+    depois marca e modelo individualmente.
+    Devolve (marca_normalizada, modelo_normalizado, combustivel_normalizado, tipo_normalizado).
+    """
     if not dicionario_map or pd.isna(termo) or not termo:
-        return None, None
+        return None, None, None, None
     chave = _normalizar_para_lookup(str(termo))
-    marca_encontrada, modelo_encontrado = None, None
-    
-    # Infelizmente para substring temos de iterar, mas podemos iterar sobre o mapa que e mais rapido que o DF
-    for campo in ["marca", "modelo"]:
+    marca_encontrada, modelo_encontrado, combustivel_encontrado, tipo_encontrado = None, None, None, None
+
+    # 1. Tentar marca_modelo por substring — cobre "VW Golf usado", etc.
+    for original, normalizado in dicionario_map.get("marca_modelo", {}).items():
+        if re.search(r"\b" + re.escape(original) + r"\b", chave):
+            partes = normalizado.split("|", 1)
+            if len(partes) == 2:
+                marca_encontrada, modelo_encontrado = partes[0], partes[1]
+            return marca_encontrada, modelo_encontrado, combustivel_encontrado, tipo_encontrado
+
+    # 2. Fallback: marca, modelo, combustivel e tipo em separado
+    for campo in ["marca", "modelo", "combustivel", "tipo_automovel"]:
         for original, normalizado in dicionario_map.get(campo, {}).items():
             if re.search(r"\b" + re.escape(original) + r"\b", chave):
-                if campo == "marca": marca_encontrada = normalizado
-                else: modelo_encontrado = normalizado
-                break # primeira correspondencia
-    return marca_encontrada, modelo_encontrado
+                if campo == "marca":
+                    marca_encontrada = normalizado
+                elif campo == "modelo":
+                    modelo_encontrado = normalizado
+                elif campo == "combustivel":
+                    combustivel_encontrado = normalizado
+                elif campo == "tipo_automovel":
+                    tipo_encontrado = normalizado
+                break  # primeira correspondência por campo
+
+    return marca_encontrada, modelo_encontrado, combustivel_encontrado, tipo_encontrado
 
 def _extrair_mencoes(texto: str, dicionario_map: dict) -> tuple[list[str], list[str]]:
-    """Extração otimizada de menções via regex único para marcas e modelos."""
+    """
+    Extração de menções de marcas e modelos no texto do fórum.
+
+    Estratégia:
+    1. Tenta pares marca_modelo (ex: 'vw golf') — mais preciso, evita falsos positivos
+       em que "clio" apanha "Renault" por engano.
+    2. Tenta marca e modelo individualmente para o que não foi apanhado por par.
+    """
     if not dicionario_map or not texto:
         return [], []
 
     texto_norm = _normalizar_para_lookup(texto)
     marcas, modelos = set(), set()
 
+    # 1. Pares marca_modelo
+    for original, normalizado in dicionario_map.get("marca_modelo", {}).items():
+        if original in texto_norm:
+            if re.search(r"\b" + re.escape(original) + r"\b", texto_norm):
+                partes = normalizado.split("|", 1)
+                if len(partes) == 2:
+                    marcas.add(partes[0])
+                    modelos.add(partes[1])
+
+    # 2. Marcas e modelos individuais (para os que não vieram em par)
     for campo, items in dicionario_map.items():
-        if campo not in ["marca", "modelo"]: continue
+        if campo not in ["marca", "modelo"]:
+            continue
         for original, normalizado in items.items():
-            if original in texto_norm: # pre-check rapido
+            if original in texto_norm:
                 if re.search(r"\b" + re.escape(original) + r"\b", texto_norm):
-                    if campo == "marca": marcas.add(normalizado)
-                    else: modelos.add(normalizado)
+                    if campo == "marca":
+                        marcas.add(normalizado)
+                    else:
+                        modelos.add(normalizado)
 
     return sorted(marcas), sorted(modelos)
 
@@ -303,6 +356,52 @@ def _analisar_sentimento(texto: str, nlp_habilitado: bool = True) -> float:
 
     return round(sum(scores) / len(scores), 4) if scores else 0.0
 
+def _isolar_texto_por_carro(texto_limpo: str, dicionario_map: dict) -> list[dict]:
+    """
+    Divide o texto em frases. Agrupa as frases por carro mencionado.
+    Se uma frase não tiver menções, herda o contexto do último carro mencionado.
+    """
+    # Dividir por pontos finais (ignorando partes vazias ou muito curtas)
+    frases = [f.strip() for f in texto_limpo.split(".") if len(f.strip()) > 5]
+    
+    # Usamos um dicionário com a chave (marca, modelo) para agrupar facilmente as frases
+    blocos_temporarios = {}
+    
+    ultima_marca = "N/A"
+    ultimo_modelo = "N/A"
+    
+    for frase in frases:
+        marcas, modelos = _extrair_mencoes(frase, dicionario_map)
+        
+        if marcas or modelos:
+            ultima_marca = marcas[0] if marcas else ultima_marca
+            ultimo_modelo = modelos[0] if modelos else ultimo_modelo
+            
+        chave = (ultima_marca, ultimo_modelo)
+        
+        if chave not in blocos_temporarios:
+            blocos_temporarios[chave] = {"frases": [], "contagem_mencoes": 0}            
+        blocos_temporarios[chave]["frases"].append(frase)
+
+        if ultimo_modelo in modelos:
+            blocos_temporarios[chave]["contagem_mencoes"] += 1
+        
+    # Converter para o formato final de fácil leitura
+    resultados = []
+    for (marca, modelo), dados in blocos_temporarios.items():
+        # Ignorar se marca/modelo não foram identificados ou se não houve menções reais
+        if marca == "N/A" or modelo == "N/A" or dados["contagem_mencoes"] == 0:
+            continue
+            
+        resultados.append({
+            "marca": marca,
+            "modelo": modelo,
+            "frases": dados["frases"],
+            "texto_completo": " . ".join(dados["frases"]) + ".",
+            "n_mencoes_modelo": dados["contagem_mencoes"]
+        })
+        
+    return resultados
 
 # ─── QUARENTENA ───────────────────────────────────────────────────────────────
 
@@ -449,10 +548,12 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
     print(f"  Bronze lido: {len(df_bronze)} registos")
 
     df_dic = _carregar_dicionario(engine) if engine else pd.DataFrame()
-    dicionario_map = _criar_mapa_dicionario(df_dic)
+    dic_map = _criar_mapa_dicionario(df_dic)
 
-    # 1. Normalizar nulos textuais
+    # 1. Normalizar nulos textuais e nomes de stands
     df = _normalizar_nulos(df_bronze.copy())
+    if "stand" in df.columns:
+        df["stand"] = df["stand"].str.strip().str.title()
 
     # 2. Cast de datas e valores numéricos
     for col_data in ["data_entrada_stock", "data_venda"]:
@@ -463,18 +564,57 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
         if col_float in df.columns:
             df[col_float] = _cast_seguro(df[col_float], "float")
 
+    # 3. Cast quilometragem — guardar máscara antes para detetar "85000 km" -> NULL
     if "quilometragem" in df.columns:
-        # Guardar máscara de valores originalmente não-nulos antes do cast
-        # para detetar "85000 km" -> NULL (INVALID_TYPE) vs genuinamente ausente
         _km_tinha_valor = df["quilometragem"].notna()
         df["quilometragem"] = _cast_seguro(df["quilometragem"], "int")
         mask_km_invalido = _km_tinha_valor & df["quilometragem"].isna()
     else:
         mask_km_invalido = pd.Series(False, index=df.index)
 
-    # 3. Normalizar marca e modelo via dicionário
-    df["marca_normalizada"]  = df["marca"].apply(lambda v: _lookup(v, "marca", dicionario_map))
-    df["modelo_normalizado"] = df["modelo"].apply(lambda v: _lookup(v, "modelo", dicionario_map))
+    # 4. Normalizar marca, modelo, combustivel e tipo via dicionário
+    #
+    # Para marca e modelo, a estratégia tem dois níveis:
+    #   a) Lookup direto no campo individual ('marca', 'modelo')
+    #   b) Fallback para 'marca_modelo' (ex: "VW Golf" -> "Volkswagen|Golf")
+    #      — cobre casos em que o CSV tem os dois campos juntos numa só célula
+    #      — o resultado é split por '|' e distribuído pelas colunas certas
+
+    def _resolver_marca_modelo(row) -> tuple[str | None, str | None]:
+        """Devolve (marca_norm, modelo_norm) tentando lookup individual e depois par."""
+        marca_raw  = row.get("marca",  "")
+        modelo_raw = row.get("modelo", "")
+
+        # Lookup individual
+        m_marca  = _lookup(marca_raw,  "marca",  dic_map)
+        m_modelo = _lookup(modelo_raw, "modelo", dic_map)
+
+        # Se algum falhou, tentar o par "marca modelo" em marca_modelo
+        if m_marca is None or m_modelo is None:
+            par = f"{marca_raw} {modelo_raw}".strip()
+            m_par = _lookup(par, "marca_modelo", dic_map)
+            if m_par and "|" in m_par:
+                partes = m_par.split("|", 1)
+                m_marca  = m_marca  or partes[0]
+                m_modelo = m_modelo or partes[1]
+
+        return m_marca, m_modelo
+
+    resultados_mm = df.apply(_resolver_marca_modelo, axis=1)
+    df["marca_normalizada"]  = resultados_mm.apply(lambda t: t[0])
+    df["modelo_normalizado"] = resultados_mm.apply(lambda t: t[1])
+
+    # Normalização de Tipo e Combustível (fallback para Title case se não no dicionário)
+    df["tipo_automovel"] = df["tipo_automovel"].apply(
+        lambda x: _lookup(x, "tipo_automovel", dic_map) or (str(x).strip().title() if pd.notna(x) else "N/A")
+    )
+    df["combustivel"] = df["combustivel"].apply(
+        lambda x: _lookup(x, "combustivel", dic_map) or (str(x).strip().title() if pd.notna(x) else "N/A")
+    )
+
+    # Garantir que siglas fiquem em Upper Case (SUV, GPL)
+    df["tipo_automovel"] = df["tipo_automovel"].replace({"Suv": "SUV"})
+    df["combustivel"]    = df["combustivel"].replace({"Gpl": "GPL"})
 
     # 4. Identificar registos para quarentena
     # Cada máscara identifica uma regra. A union decide quem sai.
@@ -482,6 +622,7 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
 
     # BK nula
     mask_bk = df["matricula"].isna() if "matricula" in df.columns else pd.Series(False, index=df.index)
+    mask_nl = df["num_lugares"].isna() if "num_lugares" in df.columns else pd.Series(False, index=df.index)
 
     # Marca não resolvida (só para registos com BK válida)
     mask_marca = ~mask_bk & df["marca"].notna() & df["marca_normalizada"].isna()
@@ -502,7 +643,7 @@ def silver_inventario(source_files: list[str] | None = None, engine=None):
         )
 
     # Máscara total — union de todas as condições
-    mask_rejeitar = mask_bk | mask_marca | mask_modelo | mask_km | mask_datas
+    mask_rejeitar = mask_bk | mask_marca | mask_modelo | mask_km | mask_datas | mask_nl
 
     # Construir lista de quarentena: cada registo rejeitado aparece UMA vez
     # com a primeira regra que violou (ordem de prioridade: BK > marca > modelo > km > data)
@@ -604,6 +745,8 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
     lookup_results = df["termo"].apply(lambda v: _lookup_trends(v, dicionario_map))
     df["marca_normalizada"]  = lookup_results.apply(lambda t: t[0])
     df["modelo_normalizado"] = lookup_results.apply(lambda t: t[1])
+    df["combustivel_normalizado"] = lookup_results.apply(lambda t: t[2])
+    df["tipo_normalizado"] = lookup_results.apply(lambda t: t[3])
 
     # Quarentena
     quarentena_registos = []
@@ -641,38 +784,18 @@ def silver_trends(source_files: list[str] | None = None, engine=None):
 
 def _limpar_texto_forum(texto: str) -> str:
     """
-    Remove ruido estrutural do texto bruto do forum.
-
-    Suporta dois formatos de input:
-    - Formato multi-linha (generate_samples.py): separado por newline - filtra linha a linha.
-    - Formato continuo (generate_forum.py): um unico bloco separado por espacos.
-      A abordagem linha-a-linha descartaria o documento inteiro quando a unica linha
-      contiver 'motorguia.net'. Em vez disso, substitui frases de ruido literais
-      e devolve o texto restante para NLP.
+    Remove ruído estrutural do texto bruto do fórum de forma robusta.
     """
-    linhas = texto.split("\n")
-
-    # Formato multi-linha
-    if len(linhas) > 3:
-        linhas_limpas = []
-        for linha in linhas:
-            linha_strip = linha.strip()
-            if not linha_strip:
-                continue
-            if _REGEX_RUIDO_FORUM.search(linha_strip):
-                continue
-            if _REGEX_CABECALHO_POST.match(linha_strip):
-                continue
-            linhas_limpas.append(linha_strip)
-        return "\n".join(linhas_limpas)
-
-    # Formato continuo (bloco unico sem newlines)
-    texto_limpo = texto
+    texto_limpo = str(texto)
+    
     for frase in _RUIDO_LITERAIS_FORUM:
         texto_limpo = texto_limpo.replace(frase, " ")
+        
+    texto_limpo = _REGEX_URLS.sub(" ", texto_limpo)
+    texto_limpo = _REGEX_PAGINACAO.sub(" ", texto_limpo)
     texto_limpo = _REGEX_METADATA_UTILIZADOR.sub(" ", texto_limpo)
+    
     return re.sub(r"\s+", " ", texto_limpo).strip()
-
 
 def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilitado: bool = True):
     """
@@ -697,11 +820,13 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
         print(f"  Bronze não encontrado em {BRONZE_FORUM} — a saltar.")
         return
 
-    df_bronze = dt_bronze.to_pandas()
-
     if source_files is not None:
-        nomes = {Path(f).name for f in source_files}
-        df_bronze = df_bronze[df_bronze["source_file"].isin(nomes)]
+        nomes = [Path(f).name for f in source_files]
+        df_bronze = dt_bronze.to_pyarrow_dataset().to_table(
+            filter=pc.field("source_file").isin(nomes)
+        ).to_pandas()
+    else:
+        df_bronze = dt_bronze.to_pandas()
 
     if df_bronze.empty:
         print("  Nenhum registo novo no Bronze — a saltar.")
@@ -729,15 +854,9 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
         # Limpar ruído estrutural
         texto_limpo = _limpar_texto_forum(str(texto_bruto))
 
-        # Extrair menções a marcas e modelos (abordagem defensiva por substring/regex)
-        marcas, modelos = _extrair_mencoes(texto_limpo, dicionario_map)
-        n_mencoes = len(marcas) + len(modelos)
+        blocos_por_carro = _isolar_texto_por_carro(texto_limpo, dicionario_map)
 
-        # Análise de sentimento
-        score_sentimento = _analisar_sentimento(texto_limpo, nlp_habilitado=nlp_habilitado)
-
-        # Quarentena: sem menções E sentimento neutro sem extração (provável texto inútil)
-        if n_mencoes == 0 and score_sentimento == 0.0:
+        if not blocos_por_carro:
             quarentena_registos.append({
                 "fonte": "forum", "source_file": source_file,
                 "regra_violada": "NO_SIGNAL",
@@ -747,19 +866,21 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
             })
             continue
 
-        registos_ok.append({
-            "source_file":        source_file,
-            "data_extracao":      str(row.get("data_extracao", "")),
-            "ingestion_timestamp": str(row.get("ingestion_timestamp", "")),
-            "texto_limpo":        texto_limpo,
-            "mencoes_marca":      "|".join(marcas),   # pipe-separated (Delta não suporta arrays)
-            "mencoes_modelo":     "|".join(modelos),
-            "score_sentimento":   score_sentimento,
-            "n_mencoes_total":    n_mencoes,
-            "n_chars_texto_limpo": len(texto_limpo),
-        })
+        for bloco in blocos_por_carro:
+            texto_para_nlp = bloco["texto_completo"]
+            score_sentimento = _analisar_sentimento(texto_para_nlp, nlp_habilitado=nlp_habilitado)
 
-        print(f"  {source_file} -> marcas={marcas} modelos={modelos} sentimento={score_sentimento}")
+            registos_ok.append({
+                "source_file":         source_file,
+                "data_extracao":       str(row.get("data_extracao", "")),
+                "ingestion_timestamp": str(row.get("ingestion_timestamp", "")),
+                "texto_limpo":         texto_para_nlp, 
+                "mencoes_marca":       bloco["marca"], 
+                "mencoes_modelo":      bloco["modelo"],
+                "score_sentimento":    score_sentimento,
+                "n_mencoes_modelo":    bloco["n_mencoes_modelo"],
+            })
+
 
     total = len(df_bronze)
     n_quarentena = len(quarentena_registos)
@@ -771,7 +892,7 @@ def silver_forum(source_files: list[str] | None = None, engine=None, nlp_habilit
         df_ok = pd.DataFrame(registos_ok)
         for col in df_ok.select_dtypes(include="object").columns:
             df_ok[col] = df_ok[col].astype("string")
-        _merge_silver(df_ok, SILVER_FORUM, bk_cols=["source_file"])
+        _merge_silver(df_ok, SILVER_FORUM, bk_cols=["source_file", "mencoes_marca", "mencoes_modelo"])
 
     if engine:
         _registar_qualidade(engine, "forum", total, n_ok, n_quarentena,
@@ -843,29 +964,13 @@ def silver_hashtags(source_files: list[str] | None = None, engine=None):
 
     df_ok = df[~(bk_nula | posts_invalidos)].copy()
 
-    # Extração de modelo a partir da hashtag (ex: "#volkswagengolf" -> "Golf")
-    # Remove o '#' e faz lookup no campo 'hashtag' do dicionário
-    def _modelo_de_hashtag(hashtag: str) -> str | None:
-        """
-        Tenta mapear uma hashtag para um modelo/marca normalizado.
-        Ordem de prioridade: campo 'hashtag' -> campo 'modelo' -> campo 'marca'
-        """
-        if pd.isna(hashtag):
-            return None
-        tag_limpa = re.sub(r"^#", "", str(hashtag).lower().strip())
-        
-        # 1. Tentar como hashtag específica (ex: 'volkswagengolf' -> 'Golf')
-        m = _lookup(tag_limpa, "hashtag", dicionario_map)
-        if m: return m
-        
-        # 2. Tentar como modelo direto (ex: 'golf' -> 'Golf')
-        m = _lookup(tag_limpa, "modelo", dicionario_map)
-        if m: return m
-        
-        # 3. Tentar como marca direta (ex: 'bmw' -> 'BMW')
-        return _lookup(tag_limpa, "marca", dicionario_map)
+    # Analise de categorias
+    analise_tags = df_ok["categoria"].apply(lambda v: _lookup_trends(v, dicionario_map))
 
-    df_ok["modelo_normalizado"] = df_ok["hashtag"].apply(_modelo_de_hashtag)
+    df_ok["marca_normalizada"]       = analise_tags.apply(lambda t: t[0])
+    df_ok["modelo_normalizado"]      = analise_tags.apply(lambda t: t[1])
+    df_ok["combustivel_normalizado"] = analise_tags.apply(lambda t: t[2])
+    df_ok["tipo_normalizado"]        = analise_tags.apply(lambda t: t[3])
 
     # Calcular variacao_semanal sobre histórico completo Silver + novos registos
     # Carrega Silver existente para ter o histórico de semanas anteriores
@@ -941,7 +1046,7 @@ def silver_clientes(source_files: list[str] | None = None, engine=None):
     
     # Cast idade
     df["idade"] = _cast_seguro(df["idade"], "int")
-    
+
     # Calcular faixa etaria
     def calcular_faixa(idade):
         if pd.isna(idade): return "Desconhecido"
@@ -956,7 +1061,7 @@ def silver_clientes(source_files: list[str] | None = None, engine=None):
     # Quarentena: BK nula
     quarentena_registos = []
     bk_nula = df["nif"].isna()
-    
+
     for _, row in df[bk_nula].iterrows():
         quarentena_registos.append({
             "fonte": "clientes", "source_file": row.get("source_file", ""),
@@ -970,7 +1075,7 @@ def silver_clientes(source_files: list[str] | None = None, engine=None):
 
     total, n_quarentena, n_ok = len(df), len(quarentena_registos), len(df_ok)
     _escrever_quarentena(quarentena_registos, QUARENTENA_CLIENTES)
-    
+
     if not df_ok.empty:
         df_ok = df_ok.drop_duplicates(subset=["nif"], keep="last")
         _merge_silver(df_ok, SILVER_CLIENTES, bk_cols=["nif"])

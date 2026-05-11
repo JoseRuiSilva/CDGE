@@ -10,6 +10,7 @@
 
 # ── Dados gerados (não versionar CSVs/JSON de centenas de MB) ───────────────
 data/sources/
+data
 data/watermark.json
 
 # ── Delta Lake (gerado pelo pipeline — pode ser reconstruído) ───────────────
@@ -72,3 +73,4 @@ relatorio/*.toc
 # ── Ficheiros adicionais para uso próprio ────────────────────────────────────
 extras/
 scripts_extra/
+vehicles.py

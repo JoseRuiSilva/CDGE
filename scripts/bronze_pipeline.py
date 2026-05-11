@@ -342,8 +342,9 @@ def ingerir_hashtags(ficheiros: list = None):
         registos = []
         for entry in root.findall("atom:entry", ns_atom):
             hashtag     = entry.findtext("sl:hashtag",     namespaces=NS_SL, default="")
-            data        = entry.findtext("sl:date",         namespaces=NS_SL, default="")
-            total_posts = entry.findtext("sl:total_posts",  namespaces=NS_SL, default="0")
+            data        = entry.findtext("sl:date",        namespaces=NS_SL, default="")
+            total_posts = entry.findtext("sl:total_posts", namespaces=NS_SL, default="0")
+            category    = entry.findtext("sl:category",    namespaces=NS_SL, default="")
 
             # Breakdown por plataforma: <sl:platform name="instagram">134</sl:platform>
             breakdown_elem = entry.find("sl:breakdown", NS_SL)
@@ -356,6 +357,7 @@ def ingerir_hashtags(ficheiros: list = None):
             registo = {
                 "hashtag":             hashtag,
                 "data":                data,
+                "categoria":           category,
                 "total_posts":         total_posts,
                 "source_file":         filepath.name,
                 "ingestion_timestamp": timestamp_semana_simulado(ano, semana),

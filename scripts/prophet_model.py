@@ -55,10 +55,9 @@ def run_prophet():
             f.tendencia_key,
             f.modelo_key,
             f.valor_interesse AS y
-        FROM auto_escala_dw.fct_tendencia f
+        FROM auto_escala_dw.fact_trends f
         JOIN auto_escala_dw.dim_tempo t ON f.tempo_key = t.tempo_key
-        JOIN auto_escala_dw.dim_fonte src ON f.fonte_key = src.fonte_key
-        WHERE src.nome_fonte = 'Google Trends' AND f.valor_interesse IS NOT NULL
+        WHERE f.valor_interesse IS NOT NULL
     """
 
     try:
@@ -95,26 +94,42 @@ def run_prophet():
         future   = m.make_future_dataframe(periods=1, freq='MS')
         forecast = m.predict(future)
 
-        # Identificar o ultimo mes disponivel (N) e a previsao para (N+1)
-        tend_key_atual = int(df_mod.iloc[-1]['tendencia_key'])
-        yhat_prox      = forecast.iloc[-1]['yhat']
-
-        atualizacoes.append({
-            'tendencia_key': tend_key_atual,
-            'previsao':      float(max(0, yhat_prox)),
-        })
+        # Identificar o ultimo mes disponivel (ref) e o mes previsto (alvo)
+        dt_ref  = df_mod.iloc[-1]['ds']
+        dt_alvo = forecast.iloc[-1]['ds']
+        yhat_prox = forecast.iloc[-1]['yhat']
+        
+        # Obter as chaves de tempo correspondentes
+        with engine.connect() as conn:
+            res_ref = conn.execute(text("SELECT tempo_key FROM auto_escala_dw.dim_tempo WHERE data = :d"), {"d": dt_ref.date()}).fetchone()
+            res_alv = conn.execute(text("SELECT tempo_key FROM auto_escala_dw.dim_tempo WHERE data = :d"), {"d": dt_alvo.date()}).fetchone()
+        
+        if res_ref and res_alv:
+            atualizacoes.append({
+                'modelo_key':     int(mod),
+                'tempo_ref_key':  int(res_ref[0]),
+                'tempo_alvo_key': int(res_alv[0]),
+                'valor_previsto': float(max(0, yhat_prox)),
+                'yhat_lower':     float(max(0, forecast.iloc[-1]['yhat_lower'])),
+                'yhat_upper':     float(max(0, forecast.iloc[-1]['yhat_upper'])),
+            })
 
     if atualizacoes:
-        print(f"  A atualizar {len(atualizacoes)} previsoes no PostgreSQL...")
-        sql_update = text("""
-            UPDATE auto_escala_dw.fct_tendencia
-            SET previsao_prox_mes = :previsao
-            WHERE tendencia_key = :tendencia_key
+        print(f"  A inserir {len(atualizacoes)} previsoes em fact_previsao...")
+        sql_insert = text("""
+            INSERT INTO auto_escala_dw.fact_previsao
+                (modelo_key, tempo_ref_key, tempo_alvo_key, valor_previsto, yhat_lower, yhat_upper)
+            VALUES
+                (:modelo_key, :tempo_ref_key, :tempo_alvo_key, :valor_previsto, :yhat_lower, :yhat_upper)
+            ON CONFLICT (modelo_key, tempo_ref_key, tempo_alvo_key) DO UPDATE SET
+                valor_previsto = EXCLUDED.valor_previsto,
+                yhat_lower     = EXCLUDED.yhat_lower,
+                yhat_upper     = EXCLUDED.yhat_upper
         """)
         try:
             with engine.begin() as conn:
-                conn.execute(sql_update, atualizacoes)
-            print("  Previsoes escritas com sucesso na fct_tendencia!")
+                conn.execute(sql_insert, atualizacoes)
+            print("  Previsoes guardadas com sucesso!")
         except Exception as e:
             print(f"  [ERRO] Ao fazer o update: {e}")
     else:

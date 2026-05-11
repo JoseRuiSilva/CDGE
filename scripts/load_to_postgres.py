@@ -9,15 +9,26 @@ Schema Silver real (colunas disponiveis):
                      preco_aquisicao, data_entrada_stock, preco_venda,
                      data_venda, stand, ingestion_timestamp, source_file,
                      source_stand, marca_normalizada, modelo_normalizado
-  trends_delta     : termo, marca, modelo, regiao, mes, valor_interesse,
+
+  trends_delta     : termo, regiao, mes, valor_interesse,
                      ingestion_timestamp, source_file, marca_normalizada,
-                     modelo_normalizado
+                     modelo_normalizado, combustivel_normalizado, tipo_normalizado
+
   forum_delta      : source_file, data_extracao, ingestion_timestamp,
                      texto_limpo, mencoes_marca, mencoes_modelo,
-                     score_sentimento, n_mencoes_total, n_chars_texto_limpo
-  hashtags_delta   : hashtag, data, total_posts, source_file,
+                     score_sentimento, n_mencoes_modelo
+
+  hashtags_delta   : hashtag, data, categoria, total_posts, source_file,
                      ingestion_timestamp, posts_instagram, posts_twitter,
-                     posts_youtube, modelo_normalizado, variacao_semanal
+                     posts_youtube, marca_normalizada, modelo_normalizado,
+                     combustivel_normalizado, tipo_normalizado, variacao_semanal
+
+  clientes_delta   : nif, nome, idade, genero, distrito, ingestion_timestamp,
+                     source_file, faixa_etaria
+
+  demografia_delta : distrito, ano_referencia, populacao_total, pct_18_24,
+                     pct_25_34, pct_35_44, pct_45_54, pct_55_64, pct_65_mais,
+                     pct_masculino, pct_feminino, ingestion_timestamp, source_file
 
 Projeto Auto Escala — CDGE 2025/2026
 """
@@ -48,17 +59,17 @@ def _safe_col(df: pd.DataFrame, col: str, default=None) -> pd.Series:
     return df[col] if col in df.columns else pd.Series([default] * len(df), index=df.index)
 
 
-def run_load_to_postgres():
+def run_load_to_postgres(mode: str = "full_load"):
     print("\n" + "=" * 60)
-    print("  LOAD TO POSTGRESQL (STAR SCHEMA)")
+    print(f"  LOAD TO POSTGRESQL (MODE: {mode.upper()})")
     print("=" * 60)
 
     # Pre-check TCP rapido — falha imediatamente se o PostgreSQL nao estiver acessivel
     try:
-        with socket.create_connection(("localhost", 5432), timeout=3.0):
+        with socket.create_connection((_PG_HOST, int(_PG_PORT)), timeout=3.0):
             pass
     except (OSError, ConnectionRefusedError):
-        print("  AVISO: PostgreSQL nao acessivel na porta 5432. Load ignorado.")
+        print(f"  AVISO: PostgreSQL nao acessivel em {_PG_HOST}:{_PG_PORT}. Load ignorado.")
         return
 
     engine = create_engine(DW_URL, connect_args={"connect_timeout": 5})
@@ -86,141 +97,141 @@ def run_load_to_postgres():
         # ======================================================================
         # DIM_TEMPO
         # ======================================================================
-        print("  A processar dim_tempo...")
-        series_datas = []
+        print("  A inicializar dim_tempo (geração estática)...")
+        
+        ano_inicio = 2020
+        ano_fim = 2030
 
+        datas = pd.date_range(start=f'{ano_inicio}-01-01', end=f'{ano_fim}-12-31', freq='D')
+        
+        dim_tempo = pd.DataFrame({'data': datas.date})
+        dim_tempo['ano'] = datas.year
+        dim_tempo['mes'] = datas.month
+        dim_tempo['dia'] = datas.day
+        dim_tempo['trimestre'] = datas.quarter
+        dim_tempo['nome_mes'] = datas.month_name() 
+        dim_tempo['semana_ano'] = datas.isocalendar().week.values.astype(int)
+
+        query = text(f"""
+            INSERT INTO {DW_SCHEMA}.dim_tempo
+                (data, ano, mes, dia, trimestre, nome_mes, semana_ano)
+            VALUES (:data, :ano, :mes, :dia, :trimestre, :nome_mes, :semana_ano)
+            ON CONFLICT (data) DO NOTHING
+        """)
+        conn.execute(query, dim_tempo.to_dict(orient="records"))
+        print(f"  dim_tempo preenchida até {ano_fim}.")
+
+        # ======================================================================
+        # DIM_LOCALIZACAO
+        # ======================================================================
+        print("  A processar dim_localizacao...")
+        distritos = set()
         if not df_inv.empty:
-            for col in ["data_entrada_stock", "data_venda"]:
-                if col in df_inv.columns:
-                    s = pd.to_datetime(df_inv[col], errors="coerce").dt.normalize()
-                    series_datas.append(s)
-                    s_eom = s + pd.offsets.MonthEnd(0)
-                    series_datas.append(s_eom)
-
-        if not df_trends.empty and "mes" in df_trends.columns:
-            # mes esta no formato YYYY-MM (ex: "2024-01")
-            series_datas.append(pd.to_datetime(df_trends["mes"].astype(str) + "-01", errors="coerce"))
-
-        if not df_forum.empty and "data_extracao" in df_forum.columns:
-            series_datas.append(pd.to_datetime(df_forum["data_extracao"], errors="coerce").dt.normalize())
-
-        if not df_hash.empty and "data" in df_hash.columns:
-            series_datas.append(pd.to_datetime(df_hash["data"], errors="coerce").dt.normalize())
-
-        if series_datas:
-            datas_todas = pd.concat(series_datas)
-            datas_todas = pd.to_datetime(datas_todas, errors="coerce").dropna().drop_duplicates()
-
-            if not datas_todas.empty:
-                dim_tempo = pd.DataFrame({"data": datas_todas.dt.date})
-                dim_tempo["ano"]       = pd.to_datetime(dim_tempo["data"]).dt.year
-                dim_tempo["mes"]       = pd.to_datetime(dim_tempo["data"]).dt.month
-                dim_tempo["dia"]       = pd.to_datetime(dim_tempo["data"]).dt.day
-                dim_tempo["trimestre"] = pd.to_datetime(dim_tempo["data"]).dt.quarter
-                dim_tempo["nome_mes"]  = pd.to_datetime(dim_tempo["data"]).dt.month_name()
-                dim_tempo["semana_ano"]= pd.to_datetime(dim_tempo["data"]).dt.isocalendar().week.astype(int)
-
-                conn.execute(
-                    text(f"""
-                        INSERT INTO {DW_SCHEMA}.dim_tempo
-                            (data, ano, mes, dia, trimestre, nome_mes, semana_ano)
-                        VALUES (:data, :ano, :mes, :dia, :trimestre, :nome_mes, :semana_ano)
-                        ON CONFLICT (data) DO NOTHING
-                    """),
-                    dim_tempo.to_dict(orient="records"),
-                )
+            distritos.update(df_inv["stand"].unique())
+        if not df_cli.empty:
+            distritos.update(df_cli["distrito"].unique())
+        if not df_demo.empty:
+            distritos.update(df_demo["distrito"].unique())
+        if not df_trends.empty:
+            distritos.update(df_trends["regiao"].unique())
+        
+        distritos = {d for d in distritos if pd.notna(d) and str(d).strip()}
+        if distritos:
+            df_loc = pd.DataFrame([{"distrito": d, "pais": "Portugal"} for d in distritos])
+            conn.execute(
+                text(f"""
+                    INSERT INTO {DW_SCHEMA}.dim_localizacao (distrito, pais)
+                    VALUES (:distrito, :pais)
+                    ON CONFLICT (distrito) DO NOTHING
+                """),
+                df_loc.to_dict(orient="records"),
+            )
+        
+        map_loc = pd.read_sql(f"SELECT localizacao_key, distrito FROM {DW_SCHEMA}.dim_localizacao", conn)
 
         # ======================================================================
         # DIM_STAND
-        # Silver inventario tem coluna 'stand' (nome) e 'source_stand'.
-        # Nao tem cidade/distrito/pais — inserir com valores NULL.
         # ======================================================================
         print("  A processar dim_stand...")
         if not df_inv.empty and "stand" in df_inv.columns:
-            dim_stand = (
+            df_stand = (
                 df_inv[["stand"]]
                 .drop_duplicates(subset=["stand"])
-                .dropna(subset=["stand"])
-                .copy()
+                .rename(columns={"stand": "nome_stand"})
+                .merge(map_loc.rename(columns={"distrito": "nome_stand"}), on="nome_stand", how="left")
             )
-            dim_stand["cidade"]   = None
-            dim_stand["distrito"] = None
-            dim_stand["pais"]     = "Portugal"
-
             conn.execute(
                 text(f"""
-                    INSERT INTO {DW_SCHEMA}.dim_stand (nome_stand, cidade, distrito, pais)
-                    VALUES (:stand, :cidade, :distrito, :pais)
+                    INSERT INTO {DW_SCHEMA}.dim_stand (nome_stand, localizacao_key)
+                    VALUES (:nome_stand, :localizacao_key)
                     ON CONFLICT (nome_stand) DO NOTHING
                 """),
-                dim_stand.to_dict(orient="records"),
+                df_stand.replace({np.nan: None}).to_dict(orient="records"),
             )
 
         # ======================================================================
-        # DIM_MODELO
-        # Usa marca_normalizada/modelo_normalizado quando disponiveis.
+        # DIM_MODELO (Dynamic Discovery)
         # ======================================================================
-        print("  A processar dim_modelo...")
-        modelos = []
+        print("  A processar dim_modelo (Descoberta Dinâmica)...")
+        modelos_list = []
 
+        # 1. De Inventário (Geralmente modelos completos)
         if not df_inv.empty:
             tmp = df_inv.copy()
-            # Preferir versoes normalizadas
-            if "marca_normalizada" in tmp.columns:
-                tmp["marca"] = tmp["marca_normalizada"].fillna(tmp["marca"])
-            if "modelo_normalizado" in tmp.columns:
-                tmp["modelo"] = tmp["modelo_normalizado"].fillna(tmp["modelo"])
-            tmp["tipo_automovel"] = _safe_col(tmp, "tipo_automovel", "N/A")
-            tmp["combustivel"]    = _safe_col(tmp, "combustivel",    "N/A")
-            modelos.append(tmp[["marca", "modelo", "tipo_automovel", "combustivel"]])
+            tmp["marca"] = tmp["marca_normalizada"].fillna(tmp.get("marca", "N/A"))
+            tmp["modelo"] = tmp["modelo_normalizado"].fillna(tmp.get("modelo", "N/A"))
+            tmp["tipo_automovel"] = _safe_col(tmp, "tipo_automovel", "N/A").fillna("N/A")
+            tmp["combustivel"]    = _safe_col(tmp, "combustivel",    "N/A").fillna("N/A")
+            modelos_list.append(tmp[["marca", "modelo", "tipo_automovel", "combustivel"]])
 
+        # 2. De Trends (Pode ser apenas Marca ou apenas Modelo)
         if not df_trends.empty:
             tmp = df_trends.copy()
-            if "marca_normalizada" in tmp.columns:
-                tmp["marca"] = tmp["marca_normalizada"].fillna(tmp.get("marca", pd.NA))
-            if "modelo_normalizado" in tmp.columns:
-                tmp["modelo"] = tmp["modelo_normalizado"].fillna(tmp.get("modelo", pd.NA))
-            tmp["tipo_automovel"] = "N/A"
-            tmp["combustivel"]    = "N/A"
-            modelos.append(tmp[["marca", "modelo", "tipo_automovel", "combustivel"]])
+            tmp["marca"] = tmp["marca_normalizada"].fillna("N/A")
+            tmp["modelo"] = tmp["modelo_normalizado"].fillna("N/A")
+            tmp["tipo_automovel"] = tmp["tipo_normalizado"].fillna("N/A")
+            tmp["combustivel"]    = tmp["combustivel_normalizado"].fillna("N/A")
+            modelos_list.append(tmp[["marca", "modelo", "tipo_automovel", "combustivel"]])
 
+        # 3. De Forum (Menções soltas)
         if not df_forum.empty:
-            # Forum tem mencoes_marca e mencoes_modelo (pipe-separated)
-            # Expandir: cada mencao e um par marca|modelo potencial
-            linhas = []
-            for _, row in df_forum.iterrows():
-                marcas  = [m.strip() for m in str(row.get("mencoes_marca", "") or "").split("|") if m.strip()]
-                modelos_f = [m.strip() for m in str(row.get("mencoes_modelo", "") or "").split("|") if m.strip()]
-                for m in marcas:
-                    linhas.append({"marca": m, "modelo": None, "tipo_automovel": "N/A", "combustivel": "N/A"})
-                for m in modelos_f:
-                    linhas.append({"marca": None, "modelo": m, "tipo_automovel": "N/A", "combustivel": "N/A"})
-            if linhas:
-                modelos.append(pd.DataFrame(linhas))
+            df_temp = df_forum[["mencoes_marca", "mencoes_modelo"]].copy()
+            df_temp = df_temp.rename(columns={
+                "mencoes_marca": "marca", 
+                "mencoes_modelo": "modelo"
+            })
+            df_temp["marca"] = df_temp["marca"].replace(["", "Desconhecida", "Desconhecido", "SemMarca", None], "N/A")
+            df_temp["modelo"] = df_temp["modelo"].replace(["", "Desconhecido", "Desconhecida", "SemModelo", None], "N/A")
+            df_temp["tipo_automovel"] = "N/A"
+            df_temp["combustivel"] = "N/A"
+            df_temp = df_temp.drop_duplicates()
+            modelos_list.append(df_temp)
 
-        if modelos:
-            dim_modelo = (
-                pd.concat(modelos)
-                .drop_duplicates(subset=["marca", "modelo"])
-                .dropna(subset=["marca", "modelo"])
-                .copy()
-            )
-            dim_modelo["tipo_automovel"] = dim_modelo["tipo_automovel"].fillna("N/A")
-            dim_modelo["combustivel"]    = dim_modelo["combustivel"].fillna("N/A")
+        # 4. De Hashtags (Melhorado via Silver analysis)
+        if not df_hash.empty:
+            tmp = df_hash.copy()
+            tmp["marca"]          = _safe_col(tmp, "marca_normalizada", "N/A").fillna("N/A")
+            tmp["modelo"]         = _safe_col(tmp, "modelo_normalizado", "N/A").fillna("N/A")
+            tmp["tipo_automovel"] = _safe_col(tmp, "tipo_normalizado", "N/A").fillna("N/A")
+            tmp["combustivel"]    = _safe_col(tmp, "combustivel_normalizado", "N/A").fillna("N/A")
+            modelos_list.append(tmp[["marca", "modelo", "tipo_automovel", "combustivel"]])
+
+        if modelos_list:
+            dim_modelo = pd.concat(modelos_list).replace({pd.NA: "N/A", np.nan: "N/A"})
+            
+            modelos_conhecidos = dim_modelo[dim_modelo["marca"] != "N/A"].drop_duplicates(subset=["modelo"])
+            mapa_marcas = modelos_conhecidos.set_index("modelo")["marca"].to_dict()
+            
+            mask_na = dim_modelo["marca"] == "N/A"
+            dim_modelo.loc[mask_na, "marca"] = dim_modelo.loc[mask_na, "modelo"].map(mapa_marcas).fillna("N/A")
+            
+            dim_modelo = dim_modelo[["marca", "modelo", "tipo_automovel", "combustivel"]].drop_duplicates()
 
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.dim_modelo (marca, modelo, tipo_automovel, combustivel)
                     VALUES (:marca, :modelo, :tipo_automovel, :combustivel)
-                    ON CONFLICT (marca, modelo) DO UPDATE SET
-                        tipo_automovel = CASE
-                            WHEN EXCLUDED.tipo_automovel != 'N/A'
-                            THEN EXCLUDED.tipo_automovel
-                            ELSE dim_modelo.tipo_automovel END,
-                        combustivel = CASE
-                            WHEN EXCLUDED.combustivel != 'N/A'
-                            THEN EXCLUDED.combustivel
-                            ELSE dim_modelo.combustivel END
+                    ON CONFLICT (marca, modelo, tipo_automovel, combustivel) DO NOTHING
                 """),
                 dim_modelo.to_dict(orient="records"),
             )
@@ -231,17 +242,25 @@ def run_load_to_postgres():
         print("  A processar dim_veiculo...")
         if not df_inv.empty and "id_viatura" in df_inv.columns:
             map_modelos = pd.read_sql(
-                f"SELECT modelo_key, marca, modelo FROM {DW_SCHEMA}.dim_modelo", conn
+                f"SELECT modelo_key, marca, modelo, tipo_automovel, combustivel FROM {DW_SCHEMA}.dim_modelo", 
+                conn
             )
             tmp = df_inv.copy()
-            if "marca_normalizada" in tmp.columns:
-                tmp["marca"] = tmp["marca_normalizada"].fillna(tmp["marca"])
-            if "modelo_normalizado" in tmp.columns:
-                tmp["modelo"] = tmp["modelo_normalizado"].fillna(tmp["modelo"])
+            tmp["marca"] = tmp["marca_normalizada"].fillna(tmp["marca"]).fillna("N/A")
+            tmp["modelo"] = tmp["modelo_normalizado"].fillna(tmp["modelo"]).fillna("N/A")
+            tmp["tipo_automovel"] = _safe_col(tmp, "tipo_automovel", "N/A").fillna("N/A")
+            tmp["combustivel"]    = _safe_col(tmp, "combustivel",    "N/A").fillna("N/A")
 
-            dim_veic = tmp.merge(map_modelos, on=["marca", "modelo"], how="left")
+            dim_veic = tmp.merge(
+                map_modelos, 
+                on=["marca", "modelo", "tipo_automovel", "combustivel"], 
+                how="left"
+            )
+
             dim_veic = (
-                dim_veic[["id_viatura", "matricula", "modelo_key", "num_lugares", "ano_viatura"]]
+                dim_veic[[
+                    "id_viatura", "matricula", "modelo_key", "num_lugares", "ano_viatura"
+                ]]
                 .drop_duplicates(subset=["id_viatura"])
                 .dropna(subset=["id_viatura"])
             )
@@ -251,36 +270,9 @@ def run_load_to_postgres():
                     INSERT INTO {DW_SCHEMA}.dim_veiculo
                         (id_viatura, matricula, modelo_key, num_lugares, ano_viatura)
                     VALUES (:id_viatura, :matricula, :modelo_key, :num_lugares, :ano_viatura)
-                    ON CONFLICT (id_viatura) DO UPDATE SET
-                        matricula  = EXCLUDED.matricula,
-                        modelo_key = EXCLUDED.modelo_key,
-                        num_lugares = EXCLUDED.num_lugares,
-                        ano_viatura = EXCLUDED.ano_viatura
+                    ON CONFLICT (id_viatura) DO NOTHING
                 """),
                 dim_veic.replace({np.nan: None}).to_dict(orient="records"),
-            )
-
-        # ======================================================================
-        # DIM_HASHTAG
-        # Silver hashtags nao tem coluna 'categoria' — inserir com NULL.
-        # ======================================================================
-        print("  A processar dim_hashtag...")
-        if not df_hash.empty and "hashtag" in df_hash.columns:
-            dim_hashtag = (
-                df_hash[["hashtag"]]
-                .drop_duplicates(subset=["hashtag"])
-                .dropna(subset=["hashtag"])
-                .copy()
-            )
-            dim_hashtag["categoria"] = None
-
-            conn.execute(
-                text(f"""
-                    INSERT INTO {DW_SCHEMA}.dim_hashtag (hashtag, categoria)
-                    VALUES (:hashtag, :categoria)
-                    ON CONFLICT (hashtag) DO NOTHING
-                """),
-                dim_hashtag.to_dict(orient="records"),
             )
 
         # ======================================================================
@@ -288,18 +280,26 @@ def run_load_to_postgres():
         # ======================================================================
         print("  A processar dim_cliente...")
         if not df_cli.empty:
-            dim_cli = df_cli.drop_duplicates(subset=["nif"]).copy()
+            dim_cli = df_cli.merge(map_loc, on="distrito", how="left")
+            if "ano_mes" in dim_cli.columns:
+                dim_cli = dim_cli.sort_values("ano_mes", ascending=False)
+            
+            dim_cli = (
+                        dim_cli
+                        .drop_duplicates(subset=["nif"], keep="first")   
+                        .copy()
+                    )
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.dim_cliente
-                        (nif, nome, idade, faixa_etaria, genero, distrito)
-                    VALUES (:nif, :nome, :idade, :faixa_etaria, :genero, :distrito)
+                        (nif, nome, idade, faixa_etaria, genero, localizacao_key)
+                    VALUES (:nif, :nome, :idade, :faixa_etaria, :genero, :localizacao_key)
                     ON CONFLICT (nif) DO UPDATE SET
                         nome = EXCLUDED.nome,
                         idade = EXCLUDED.idade,
                         faixa_etaria = EXCLUDED.faixa_etaria,
                         genero = EXCLUDED.genero,
-                        distrito = EXCLUDED.distrito
+                        localizacao_key = EXCLUDED.localizacao_key
                 """),
                 dim_cli.replace({np.nan: None}).to_dict(orient="records"),
             )
@@ -309,15 +309,16 @@ def run_load_to_postgres():
         # ======================================================================
         print("  A processar dim_demografia_regional...")
         if not df_demo.empty:
-            dim_demo = df_demo.drop_duplicates(subset=["distrito", "ano_referencia"]).copy()
+            dim_demo_dw = df_demo.merge(map_loc, on="distrito", how="left")
+            dim_demo_dw = dim_demo_dw.drop_duplicates(subset=["localizacao_key", "ano_referencia"]).copy()
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.dim_demografia_regional
-                        (distrito, ano_referencia, populacao_total, pct_18_24, pct_25_34,
+                        (localizacao_key, ano_referencia, populacao_total, pct_18_24, pct_25_34,
                          pct_35_49, pct_50_64, pct_65_mais, pct_masculino, pct_feminino)
-                    VALUES (:distrito, :ano_referencia, :populacao_total, :pct_18_24, :pct_25_34,
+                    VALUES (:localizacao_key, :ano_referencia, :populacao_total, :pct_18_24, :pct_25_34,
                             :pct_35_49, :pct_50_64, :pct_65_mais, :pct_masculino, :pct_feminino)
-                    ON CONFLICT (distrito, ano_referencia) DO UPDATE SET
+                    ON CONFLICT (localizacao_key, ano_referencia) DO UPDATE SET
                         populacao_total = EXCLUDED.populacao_total,
                         pct_18_24 = EXCLUDED.pct_18_24,
                         pct_25_34 = EXCLUDED.pct_25_34,
@@ -327,7 +328,7 @@ def run_load_to_postgres():
                         pct_masculino = EXCLUDED.pct_masculino,
                         pct_feminino = EXCLUDED.pct_feminino
                 """),
-                dim_demo.replace({np.nan: None}).to_dict(orient="records"),
+                dim_demo_dw.replace({np.nan: None}).to_dict(orient="records"),
             )
 
         # ======================================================================
@@ -338,8 +339,7 @@ def run_load_to_postgres():
         map_stand   = pd.read_sql(f"SELECT stand_key, nome_stand AS stand FROM {DW_SCHEMA}.dim_stand", conn)
         map_fonte   = pd.read_sql(f"SELECT fonte_key, nome_fonte FROM {DW_SCHEMA}.dim_fonte", conn)
         map_veiculo = pd.read_sql(f"SELECT veiculo_key, id_viatura FROM {DW_SCHEMA}.dim_veiculo", conn)
-        map_modelo  = pd.read_sql(f"SELECT modelo_key, marca, modelo FROM {DW_SCHEMA}.dim_modelo", conn)
-        map_hashtag = pd.read_sql(f"SELECT hashtag_key, hashtag FROM {DW_SCHEMA}.dim_hashtag", conn)
+        map_modelo  = pd.read_sql(f"SELECT modelo_key, marca, modelo, tipo_automovel, combustivel FROM {DW_SCHEMA}.dim_modelo", conn)
         map_cliente = pd.read_sql(f"SELECT cliente_key, nif FROM {DW_SCHEMA}.dim_cliente", conn)
 
         def get_fonte_key(nome):
@@ -348,8 +348,8 @@ def run_load_to_postgres():
 
         # ======================================================================
         # FCT_VENDA
-        # Silver inventario nao tem: margem, dias_em_stock, vendido
-        # Esses campos sao calculados aqui ou enviados como NULL.
+        # Silver inventario nao tem: margem, dias_em_stock
+        # Esses campos sao calculados aqui.
         # ======================================================================
         print("  A processar fct_venda...")
         if not df_inv.empty:
@@ -400,11 +400,9 @@ def run_load_to_postgres():
                 delta = fct["data_venda"] - fct["data_entrada_stock"]
                 fct["dias_em_stock"] = delta.dt.days.where(delta.notna(), other=None)
 
-            fct["vendido"] = fct["data_venda"].notna()
-
             cols = ["veiculo_key", "stand_key", "tempo_entrada_key", "tempo_venda_key", "cliente_key",
                     "quilometragem", "preco_aquisicao", "preco_venda",
-                    "margem", "dias_em_stock", "vendido"]
+                    "margem", "dias_em_stock"]
             fct = fct[cols].dropna(subset=["veiculo_key", "stand_key", "tempo_entrada_key"])
             fct = fct.replace({np.nan: None})
 
@@ -413,116 +411,215 @@ def run_load_to_postgres():
                     INSERT INTO {DW_SCHEMA}.fct_venda
                         (veiculo_key, stand_key, tempo_entrada_key, tempo_venda_key, cliente_key,
                          quilometragem, preco_aquisicao, preco_venda,
-                         margem, dias_em_stock, vendido)
+                         margem, dias_em_stock)
                     VALUES
                         (:veiculo_key, :stand_key, :tempo_entrada_key, :tempo_venda_key, :cliente_key,
                          :quilometragem, :preco_aquisicao, :preco_venda,
-                         :margem, :dias_em_stock, :vendido)
+                         :margem, :dias_em_stock)
                     ON CONFLICT (veiculo_key, stand_key, tempo_entrada_key) DO UPDATE SET
                         tempo_venda_key = EXCLUDED.tempo_venda_key,
                         cliente_key     = EXCLUDED.cliente_key,
                         quilometragem   = EXCLUDED.quilometragem,
                         preco_venda     = EXCLUDED.preco_venda,
                         margem          = EXCLUDED.margem,
-                        dias_em_stock   = EXCLUDED.dias_em_stock,
-                        vendido         = EXCLUDED.vendido
+                        dias_em_stock   = EXCLUDED.dias_em_stock
                 """),
                 fct.to_dict(orient="records"),
             )
 
         # ======================================================================
-        # FCT_TENDENCIA (Trends + Forum)
+        # FACT_TRENDS
         # ======================================================================
-        print("  A processar fct_tendencia...")
-        fct_tendencias_list = []
-
-        fonte_key_trends = get_fonte_key("Google Trends")
-        if not df_trends.empty and fonte_key_trends:
+        print("  A processar fact_trends...")
+        if not df_trends.empty:
             ft = df_trends.copy()
-            if "marca_normalizada" in ft.columns:
-                ft["marca"] = ft["marca_normalizada"].fillna(ft.get("marca", pd.NA))
-            if "modelo_normalizado" in ft.columns:
-                ft["modelo"] = ft["modelo_normalizado"].fillna(ft.get("modelo", pd.NA))
-            # mes no formato YYYY-MM -> data de primeiro dia do mes
-            ft["data"] = pd.to_datetime(ft["mes"].astype(str) + "-01", errors="coerce")
+            ft["data"] = pd.to_datetime(ft["mes"], errors="coerce").dt.normalize()
             ft = ft.merge(map_tempo, on="data", how="left")
-            ft = ft.merge(map_modelo, on=["marca", "modelo"], how="left")
-            ft["fonte_key"]       = fonte_key_trends
-            ft["score_sentimento"] = None
-            ft["delta_sentimento"] = None
-            ft["crescimento_mom_pct"] = _safe_col(ft, "crescimento_mom_pct", None)
-            fct_tendencias_list.append(
-                ft[["tempo_key", "fonte_key", "modelo_key", "valor_interesse",
-                    "crescimento_mom_pct", "score_sentimento", "delta_sentimento"]]
-            )
+            
+            # 1. Match completo (marca, modelo, tipo, combustivel)
+            ft["marca"]  = ft["marca_normalizada"].fillna("N/A")
+            ft["modelo"] = ft["modelo_normalizado"].fillna("N/A")
+            ft["tipo_automovel"] = ft["tipo_normalizado"].fillna("N/A")
+            ft["combustivel"]    = ft["combustivel_normalizado"].fillna("N/A")
+            
+            ft = ft.merge(map_modelo, on=["marca", "modelo", "tipo_automovel", "combustivel"], how="left")
+            
+            # 2. Fallback (marca, modelo) para as linhas que não tiveram match total
+            mask_fallback = ft["modelo_key"].isna()
+            if mask_fallback.any():
+                map_fallback = map_modelo.drop_duplicates(subset=["marca", "modelo"])[["marca", "modelo", "modelo_key"]]
+                ft_fallback = ft[mask_fallback].drop(columns="modelo_key").merge(
+                    map_fallback, on=["marca", "modelo"], how="left"
+                )
+                ft.loc[mask_fallback, "modelo_key"] = ft_fallback["modelo_key"].values
 
-        fonte_key_forum = get_fonte_key("Fórum motorguia.net")
-        if not df_forum.empty and fonte_key_forum:
-            # Forum: 1 linha por ficheiro — expandir mencoes_marca x mencoes_modelo
+            # 3. Match Localização
+            ft = ft.rename(columns={"regiao": "distrito"})
+            ft = ft.merge(map_loc, on="distrito", how="left")
+
+            ft = ft.dropna(subset=["tempo_key", "modelo_key", "localizacao_key"])
+            ft["tempo_key"]  = ft["tempo_key"].astype(int)
+            ft["modelo_key"] = ft["modelo_key"].astype(int)
+            ft["localizacao_key"] = ft["localizacao_key"].astype(int)
+
+            # Cálculo de crescimento_mom_pct
+            ft = ft.sort_values(["modelo_key", "localizacao_key", "data"])
+            
+            if mode == "incremental":
+                # Buscar valores do mês anterior na DB para modelos no batch
+                mod_ids = tuple(ft["modelo_key"].unique())
+                loc_ids = tuple(ft["localizacao_key"].unique())
+                if len(mod_ids) == 1: mod_ids_sql = f"({mod_ids[0]})"
+                else: mod_ids_sql = str(mod_ids)
+                if len(loc_ids) == 1: loc_ids_sql = f"({loc_ids[0]})"
+                else: loc_ids_sql = str(loc_ids)
+                
+                query_prev = text(f"""
+                    SELECT f.modelo_key, f.localizacao_key, f.valor_interesse, t.data
+                    FROM {DW_SCHEMA}.fact_trends f
+                    JOIN {DW_SCHEMA}.dim_tempo t ON f.tempo_key = t.tempo_key
+                    WHERE f.modelo_key IN {mod_ids_sql} AND f.localizacao_key IN {loc_ids_sql}
+                    AND t.data < :min_data
+                    ORDER BY t.data DESC
+                """)
+                prev_data = pd.read_sql(query_prev, conn, params={"min_data": ft["data"].min()})
+                if not prev_data.empty:
+                    # Manter apenas o último registo de cada (modelo, localizacao)
+                    prev_data = prev_data.sort_values("data").groupby(["modelo_key", "localizacao_key"]).tail(1)
+                    ft = pd.concat([prev_data, ft], ignore_index=True).sort_values(["modelo_key", "localizacao_key", "data"])
+
+            ft["crescimento_mom_pct"] = (
+                ft.groupby(["modelo_key", "localizacao_key"])["valor_interesse"]
+                .pct_change()
+                .mul(100)
+                .round(4)
+            )
+            
+            # Limpar linhas auxiliares do incremental
+            if mode == "incremental":
+                ft = ft.dropna(subset=["tempo_key"])
+
+            ft["trending_flag"] = ft["crescimento_mom_pct"].fillna(0) >= 30.0
+            
+            ft_final = ft[["tempo_key", "modelo_key", "localizacao_key", "valor_interesse", "crescimento_mom_pct", "trending_flag"]]
+            ft_final = ft_final.replace({np.nan: None})
+
+            if not ft_final.empty:
+                conn.execute(
+                    text(f"""
+                        INSERT INTO {DW_SCHEMA}.fact_trends
+                            (tempo_key, modelo_key, localizacao_key, valor_interesse, crescimento_mom_pct, trending_flag)
+                        VALUES
+                            (:tempo_key, :modelo_key, :localizacao_key, :valor_interesse, :crescimento_mom_pct, :trending_flag)
+                        ON CONFLICT (tempo_key, modelo_key, localizacao_key) DO UPDATE SET
+                            valor_interesse     = EXCLUDED.valor_interesse,
+                            crescimento_mom_pct = EXCLUDED.crescimento_mom_pct,
+                            trending_flag       = EXCLUDED.trending_flag
+                    """),
+                    ft_final.to_dict(orient="records"),
+                )
+                print(f"    -> {len(ft_final)} registos em fact_trends.")
+            else:
+                print("    -> fact_trends: nenhum registo válido após filtros.")
+
+        # ======================================================================
+        # FACT_FORUM_SENTIMENT
+        # ======================================================================
+        print("  A processar fact_forum_sentiment...")
+        if not df_forum.empty:
             linhas = []
             for _, row in df_forum.iterrows():
-                data_str = str(row.get("data_extracao", "") or "")
-                data_dt  = pd.to_datetime(data_str, errors="coerce")
-                if pd.isna(data_dt):
-                    continue
+                data_dt = pd.to_datetime(str(row.get("data_extracao", "") or ""), errors="coerce")
+                if pd.isna(data_dt): continue
 
-                # Mapear tempo_key
-                data_norm = data_dt.normalize()
-                match = map_tempo[map_tempo["data"] == data_norm]
-                tempo_key = int(match.iloc[0]["tempo_key"]) if not match.empty else None
-                if tempo_key is None:
-                    continue
+                match_tempo = map_tempo[map_tempo["data"] == data_dt.normalize()]
+                if match_tempo.empty: continue
+                tempo_key = int(match_tempo.iloc[0]["tempo_key"])
 
-                marcas   = [m.strip() for m in str(row.get("mencoes_marca", "") or "").split("|") if m.strip()]
-                modelos_f= [m.strip() for m in str(row.get("mencoes_modelo", "") or "").split("|") if m.strip()]
+                score     = float(row.get("score_sentimento",  0.0) or 0.0)
+                n_mencoes = int(row.get("n_mencoes_modelo", 0) or 0)
 
-                for marca in marcas:
-                    match_mod = map_modelo[map_modelo["marca"] == marca]
-                    modelo_key = int(match_mod.iloc[0]["modelo_key"]) if not match_mod.empty else None
+                marcas  = [m.strip() for m in str(row.get("mencoes_marca",  "") or "").split("|") if m.strip()]
+                modelos = [m.strip() for m in str(row.get("mencoes_modelo", "") or "").split("|") if m.strip()]
+
+                keys_encontrados = set()
+                # Tenta match (marca, modelo)
+                if marcas and modelos and len(marcas) == len(modelos):
+                    for ma, mo in zip(marcas, modelos):
+                        res = map_modelo[(map_modelo["marca"] == ma) & (map_modelo["modelo"] == mo)]
+                        if not res.empty: keys_encontrados.add(int(res.iloc[0]["modelo_key"]))
+
+                # Fallback só modelo
+                if not keys_encontrados:
+                    for mo in modelos:
+                        res = map_modelo[map_modelo["modelo"] == mo]
+                        if not res.empty: keys_encontrados.add(int(res.iloc[0]["modelo_key"]))
+
+                for mk in (keys_encontrados if keys_encontrados else [None]):
                     linhas.append({
-                        "tempo_key":         tempo_key,
-                        "fonte_key":         fonte_key_forum,
-                        "modelo_key":        modelo_key,
-                        "valor_interesse":   None,
-                        "crescimento_mom_pct": None,
-                        "score_sentimento":  float(row.get("score_sentimento", 0.0) or 0.0),
-                        "delta_sentimento":  None,
-                    })
-
-                if not marcas and not modelos_f:
-                    linhas.append({
-                        "tempo_key":         tempo_key,
-                        "fonte_key":         fonte_key_forum,
-                        "modelo_key":        None,
-                        "valor_interesse":   None,
-                        "crescimento_mom_pct": None,
-                        "score_sentimento":  float(row.get("score_sentimento", 0.0) or 0.0),
-                        "delta_sentimento":  None,
+                        "tempo_key": tempo_key,
+                        "modelo_key": mk,
+                        "n_mencoes": n_mencoes,
+                        "score_sentimento": score,
+                        "data": data_dt.normalize()
                     })
 
             if linhas:
-                fct_tendencias_list.append(pd.DataFrame(linhas))
+                ff = pd.DataFrame(linhas)
+                ff = ff.dropna(subset=["tempo_key", "modelo_key"])
+                # Adicionar filtro explicito para evitar n_mencoes == 0
+                ff = ff[ff["n_mencoes"] > 0]
+                ff["tempo_key"]  = ff["tempo_key"].astype(int)
+                ff["modelo_key"] = ff["modelo_key"].astype(int)
 
-        if fct_tendencias_list:
-            fct_tend = pd.concat(fct_tendencias_list).replace({np.nan: None})
-            fct_tend = fct_tend.dropna(subset=["tempo_key", "fonte_key"])
+                ff = ff.sort_values(["modelo_key", "data"])
+                
+                if mode == "incremental" and not ff.empty:
+                    mod_ids = tuple(ff["modelo_key"].unique())
+                    if len(mod_ids) == 1: mod_ids_sql = f"({mod_ids[0]})"
+                    else: mod_ids_sql = str(tuple(mod_ids))
+                    
+                    query_prev = text(f"""
+                        SELECT f.modelo_key, f.score_sentimento, t.data
+                        FROM {DW_SCHEMA}.fact_forum_sentiment f
+                        JOIN {DW_SCHEMA}.dim_tempo t ON f.tempo_key = t.tempo_key
+                        WHERE f.modelo_key IN {mod_ids_sql} AND t.data < :min_data
+                        ORDER BY t.data DESC
+                    """)
+                    prev_f = pd.read_sql(query_prev, conn, params={"min_data": ff["data"].min()})
+                    if not prev_f.empty:
+                        prev_f = prev_f.sort_values("data").groupby("modelo_key").tail(1)
+                        ff = pd.concat([prev_f, ff], ignore_index=True).sort_values(["modelo_key", "data"])
 
-            conn.execute(
-                text(f"""
-                    INSERT INTO {DW_SCHEMA}.fct_tendencia
-                        (tempo_key, fonte_key, modelo_key, valor_interesse,
-                         crescimento_mom_pct, score_sentimento, delta_sentimento)
-                    VALUES
-                        (:tempo_key, :fonte_key, :modelo_key, :valor_interesse,
-                         :crescimento_mom_pct, :score_sentimento, :delta_sentimento)
-                    ON CONFLICT (tempo_key, fonte_key, modelo_key) DO UPDATE SET
-                        valor_interesse     = EXCLUDED.valor_interesse,
-                        crescimento_mom_pct = EXCLUDED.crescimento_mom_pct,
-                        score_sentimento    = EXCLUDED.score_sentimento,
-                        delta_sentimento    = EXCLUDED.delta_sentimento
-                """),
-                fct_tend.to_dict(orient="records"),
-            )
+                ff["delta_sentimento"] = (
+                    ff.groupby("modelo_key")["score_sentimento"]
+                    .diff()
+                    .round(4)
+                )
+
+                if mode == "incremental":
+                    ff = ff.dropna(subset=["tempo_key"])
+
+                ff_final = ff[["tempo_key", "modelo_key", "n_mencoes", "score_sentimento", "delta_sentimento"]]
+                ff_final = ff_final.replace({np.nan: None})
+
+                if not ff_final.empty:
+                    conn.execute(
+                        text(f"""
+                            INSERT INTO {DW_SCHEMA}.fact_forum_sentiment
+                                (tempo_key, modelo_key, n_mencoes, score_sentimento, delta_sentimento)
+                            VALUES
+                                (:tempo_key, :modelo_key, :n_mencoes, :score_sentimento, :delta_sentimento)
+                            ON CONFLICT (tempo_key, modelo_key) DO UPDATE SET
+                                n_mencoes        = EXCLUDED.n_mencoes,
+                                score_sentimento = EXCLUDED.score_sentimento,
+                                delta_sentimento = EXCLUDED.delta_sentimento
+                        """),
+                        ff_final.to_dict(orient="records"),
+                    )
+                    print(f"    -> {len(ff_final)} registos em fact_forum_sentiment.")
+                else:
+                    print("    -> fact_forum_sentiment: nenhum registo válido após filtros.")
 
         # ======================================================================
         # FCT_HASHTAG_VOLUME
@@ -533,32 +630,34 @@ def run_load_to_postgres():
             fh = df_hash.copy()
             fh["data"] = pd.to_datetime(fh["data"], errors="coerce").dt.normalize()
             fh = fh.merge(map_tempo,   on="data",    how="left")
-            fh = fh.merge(map_hashtag, on="hashtag", how="left")
+
+            map_full = pd.read_sql(f"SELECT modelo_key, marca, modelo, tipo_automovel, combustivel FROM {DW_SCHEMA}.dim_modelo", conn)
             
-            # Mapear modelo_normalizado para modelo_key
-            if "modelo_normalizado" in fh.columns:
-                fh = fh.merge(map_modelo.rename(columns={"modelo": "modelo_normalizado"}), 
-                             on="modelo_normalizado", how="left")
-            else:
-                fh["modelo_key"] = None
+            fh["marca"]  = _safe_col(fh, "marca_normalizada", "N/A").fillna("N/A")
+            fh["modelo"] = _safe_col(fh, "modelo_normalizado", "N/A").fillna("N/A")
+            fh["tipo_automovel"] = _safe_col(fh, "tipo_automovel_normalizado", "N/A").fillna("N/A")
+            fh["combustivel"] = _safe_col(fh, "combustivel_normalizado", "N/A").fillna("N/A")
+            
+            fh = fh.merge(map_full, on=["marca", "modelo", "tipo_automovel", "combustivel"], how="left")
 
             fh["fonte_key"] = fonte_key_hash
-            fh = fh.replace({np.nan: None})
+            fh["variacao_semanal"] = fh["variacao_semanal"].fillna(0.0)
+            fh = fh.replace({np.nan: None, pd.NA: None})
 
-            cols = ["tempo_key", "fonte_key", "hashtag_key", "modelo_key", "total_posts",
+            cols = ["tempo_key", "fonte_key", "modelo_key", "total_posts",
                     "posts_instagram", "posts_twitter", "posts_youtube", "variacao_semanal"]
-            fh = fh[cols].dropna(subset=["tempo_key", "fonte_key", "hashtag_key"])
+            fh = fh[cols].dropna(subset=["tempo_key", "fonte_key", "modelo_key"])
             fh = fh.rename(columns={"total_posts": "volume"})
 
             conn.execute(
                 text(f"""
                     INSERT INTO {DW_SCHEMA}.fct_hashtag_volume
-                        (tempo_key, fonte_key, hashtag_key, modelo_key, volume,
+                        (tempo_key, fonte_key, modelo_key, volume,
                          posts_instagram, posts_twitter, posts_youtube, variacao_semanal)
                     VALUES
-                        (:tempo_key, :fonte_key, :hashtag_key, :modelo_key, :volume,
+                        (:tempo_key, :fonte_key, :modelo_key, :volume,
                          :posts_instagram, :posts_twitter, :posts_youtube, :variacao_semanal)
-                    ON CONFLICT (tempo_key, fonte_key, hashtag_key, modelo_key) DO UPDATE SET
+                    ON CONFLICT (tempo_key, fonte_key, modelo_key) DO UPDATE SET
                         volume           = EXCLUDED.volume,
                         posts_instagram  = EXCLUDED.posts_instagram,
                         posts_twitter    = EXCLUDED.posts_twitter,
@@ -612,6 +711,7 @@ def run_load_to_postgres():
                         dias_em_parque = EXCLUDED.dias_em_parque
                 """)
             )
+        pass
 
     engine.dispose()
     print("\n  Carga para o PostgreSQL concluida com sucesso.")

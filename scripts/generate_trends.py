@@ -3,115 +3,116 @@ generate_trends.py
 ---------------------------------------------------------------
 Gerador de dados sintéticos que simulam o Google Trends
 para o projeto Auto Escala — CDGE 2025/2026.
+
+Os modelos provêm do catálogo central vehicles.py.
 ---------------------------------------------------------------
 """
 
+from __future__ import annotations
+
+import json
+import math
+import random
+import sys
 from datetime import datetime
 from pathlib import Path
-import random
-import math
-import json
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(BASE_DIR / "scripts"))
+
+from vehicles import MARCAS_MODELOS  # noqa: E402
+
 OUT_BASE = BASE_DIR / "data" / "sources" / "trends"
 
 DATA_INICIO = datetime(2022, 1, 1)
-DATA_FIM = datetime(2026, 5, 1)
+DATA_FIM    = datetime(2026, 5, 1)
+
 REGIOES = ["Lisboa", "Porto", "Braga"]
 
-try:
-    import sys
-    sys.path.append(str(BASE_DIR / "scripts"))
-    from generate_inventory import VEHICLES
+# Tendências base por marca (refletem posicionamento de mercado)
+_TENDENCIA_MARCA: dict[str, int] = {
+    "Tesla":      18,
+    "Hyundai":    14,
+    "Kia":        12,
+    "Toyota":     10,
+    "Volkswagen":  8,
+    "BMW":         5,
+    "Mercedes":    4,
+    "Peugeot":     6,
+    "Renault":     4,
+    "Seat":        3,
+    "Nissan":      2,
+    "Citroën":     3,
+    "Fiat":        1,
+    "Audi":        5,
+    "Opel":        2,
+}
 
-    MARCAS_MODELOS = {}
-    for v in VEHICLES:
-        MARCAS_MODELOS.setdefault(v.marca, []).append(v.modelo)
-except Exception:
-    MARCAS_MODELOS = {
-        "Volkswagen": ["Golf", "T-Roc", "Tiguan"],
-        "Peugeot": ["208", "3008"],
-        "Renault": ["Clio", "Zoe"],
-        "BMW": ["Série 1", "X1", "Série 3"],
-        "Mercedes": ["Classe A", "GLA"],
-        "Hyundai": ["Kona"],
-        "Nissan": ["Qashqai", "Leaf"],
-        "Tesla": ["Model 3"],
-        "Seat": ["Ibiza", "Arona"],
-        "Citroën": ["C3"],
-        "Fiat": ["500"],
-        "Kia": ["Niro"],
-        "Audi": ["A3"]
-    }
-
+# Termos genéricos de pesquisa — coerentes com segmentos do inventário
 TERMOS_EXTRA = [
     "SUV usado",
     "carros elétricos usados",
     "carros híbridos usados",
-    "citadino económico",
-    "carros familiares",
-    "carros seminovos",
-    "carros a gasóleo usados",
+    "carros a gasóleo usados"
 ]
 
 
 def gerar_valor_interesse(base: float, mes_idx: int, total_meses: int, tendencia: float) -> float:
-    delta = tendencia * (mes_idx / total_meses)
+    delta   = tendencia * (mes_idx / total_meses)
     sazonal = 8 * math.sin(2 * math.pi * (mes_idx % 12) / 12)
-    ruido = random.gauss(0, 5)
-    return max(0, min(100, base + delta + sazonal + ruido))
+    ruido   = random.gauss(0, 5)
+    return max(0.0, min(100.0, base + delta + sazonal + ruido))
 
 
 def gerar_lista_meses() -> list[datetime]:
-    meses = []
+    meses: list[datetime] = []
     data = DATA_INICIO
     while data <= DATA_FIM:
         meses.append(data)
-        if data.month == 12:
-            data = datetime(data.year + 1, 1, 1)
-        else:
-            data = datetime(data.year, data.month + 1, 1)
+        data = (
+            datetime(data.year + 1, 1, 1)
+            if data.month == 12
+            else datetime(data.year, data.month + 1, 1)
+        )
     return meses
 
 
 def gerar_trends() -> list[dict]:
-    resultado = []
+    resultado: list[dict] = []
     meses = gerar_lista_meses()
     total_meses = len(meses)
 
     for marca, modelos in MARCAS_MODELOS.items():
+        tendencia_base = _TENDENCIA_MARCA.get(marca, 5)
+
         for modelo in modelos:
-            tendencia = random.choice([-10, -5, 0, 8, 12, 18])
+            # Variação individual por modelo
+            tendencia = tendencia_base + random.choice([-6, -3, 0, 3, 6])
             base = random.randint(25, 80)
 
             for regiao in REGIOES:
                 for i, mes in enumerate(meses):
-                    ym = f"{mes.year}-{mes.month:02d}"
+                    ym    = f"{mes.year}-{mes.month:02d}"
                     valor = round(gerar_valor_interesse(base, i, total_meses, tendencia), 1)
-                    termo = f"{marca} {modelo} usado"
                     resultado.append({
-                        "termo": termo,
-                        "marca": marca,
-                        "modelo": modelo,
-                        "regiao": regiao,
-                        "mes": ym,
+                        "termo":           f"{marca} {modelo} usado",
+                        "regiao":          regiao,
+                        "mes":             ym,
                         "valor_interesse": valor
                     })
 
     for termo_gen in TERMOS_EXTRA:
-        tendencia = random.choice([-5, 5, 10])
+        tendencia = random.choice([-5, 0, 5, 10])
         base = random.randint(35, 70)
 
         for regiao in REGIOES:
             for i, mes in enumerate(meses):
-                ym = f"{mes.year}-{mes.month:02d}"
+                ym    = f"{mes.year}-{mes.month:02d}"
                 valor = round(gerar_valor_interesse(base, i, total_meses, tendencia), 1)
                 resultado.append({
-                    "termo": termo_gen,
-                    "marca": None,
-                    "modelo": None,
-                    "regiao": regiao,
-                    "mes": ym,
+                    "termo":           termo_gen,
+                    "regiao":          regiao,
+                    "mes":             ym,
                     "valor_interesse": valor
                 })
 
@@ -119,7 +120,7 @@ def gerar_trends() -> list[dict]:
 
 
 def exportar_json_por_mes(trends: list[dict]) -> None:
-    por_mes = {}
+    por_mes: dict[tuple[str, str], list[dict]] = {}
     for reg in trends:
         ano, mes = reg["mes"].split("-")
         por_mes.setdefault((ano, mes), []).append(reg)
@@ -135,6 +136,7 @@ def exportar_json_por_mes(trends: list[dict]) -> None:
 
 if __name__ == "__main__":
     print("AUTO ESCALA — GERAÇÃO DE GOOGLE TRENDS")
+    random.seed(42)
     dados = gerar_trends()
     exportar_json_por_mes(dados)
     print("Ficheiros mensais gerados com sucesso.")
