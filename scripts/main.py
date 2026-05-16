@@ -36,12 +36,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR / "scripts"))
 
-from bronze_pipeline import run_bronze  # noqa: E402
-from silver_pipeline import run_silver  # noqa: E402
-from generate_dw import create_data_warehouse  # noqa: E402
-from load_to_postgres import run_load_to_postgres  # noqa: E402
-from forecast_simple import run_simple_forecast  # noqa: E402
-from data_profiling import run_profiling  # noqa: E402
+from sqlalchemy import text
+from bronze_pipeline import run_bronze
+from silver_pipeline import run_silver
+from generate_dw import create_data_warehouse, setup_sandbox, copy_to_sandbox
+from load_to_postgres import run_load_to_postgres
+from data_profiling import run_profiling
+from prev_tendencias import run_sarima
+from prev_gain import run_xgboost
 
 # ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
 import os as _os
@@ -64,7 +66,9 @@ FONTES = ["inventario", "trends", "forum", "hashtags", "clientes", "demografia"]
 # ─── LOGGING ─────────────────────────────────────────────────────────────────
 def _log(msg: str, nivel: str = "INFO") -> None:
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
-    print(f"  [{ts}] [{nivel}] {msg}")
+    # Substituir setas e outros chars problemáticos para Windows CMD
+    safe_msg = msg.replace("→", "->").replace("•", "-")
+    print(f"  [{ts}] [{nivel}] {safe_msg}")
 
 # ─── LIGAÇÃO POSTGRESQL ───────────────────────────────────────────────────────
 def _verificar_postgres_tcp(host: str = "localhost", porta: int = 5432, timeout: float = 3.0) -> bool:
@@ -87,6 +91,23 @@ def _criar_engine():
     except Exception as e:
         _log(f"PostgreSQL indisponivel ({e}).", "WARN")
         return None
+
+
+def dw_is_ready(engine) -> bool:
+    if engine is None:
+        return False
+    try:
+        with engine.connect() as conn:
+            row = conn.execute(
+                text(
+                    "SELECT 1 FROM information_schema.views "
+                    "WHERE table_schema = :schema AND table_name = :view LIMIT 1"
+                ),
+                {"schema": DW_SCHEMA, "view": "vw_mart_prev_tendencias"},
+            ).fetchone()
+            return row is not None
+    except Exception:
+        return False
 
 # ─── WATERMARK ───────────────────────────────────────────────────────────────
 def ler_watermark(engine, fonte: str) -> date | None:
@@ -120,7 +141,13 @@ def _data_trends(fp: Path) -> date | None:
     try: stem = fp.stem; return date(int(stem[-6:-2]), int(stem[-2:]), 1)
     except: return None
 def _data_forum(fp: Path) -> date | None:
-    try: stem = fp.stem; return date(int(stem[-6:-2]), int(stem[-2:]), 1)
+    try:
+        partes = fp.stem.split("_")
+        if len(partes) == 2 and len(partes[1]) == 6:
+            ano = int(partes[1][:4])
+            mes = int(partes[1][4:])
+            return date(ano, mes, 1)
+        return date.fromisoformat(partes[1])
     except: return None
 def _data_hashtags(fp: Path) -> date | None:
     try: stem = fp.stem; partes = stem.split("_")[1]; ano = int(partes[:4]); semana = int(partes[5:]); return date.fromisocalendar(ano, semana, 1)
@@ -145,30 +172,53 @@ def descobrir_ficheiros(data_min: date | None, data_max: date, watermarks: dict[
     return resultado
 
 # ─── MODOS CORE ───────────────────────────────────────────────────────────────
-def correr_full_load(engine, nlp_habilitado: bool = True):
+def correr_full_load(engine, nlp_habilitado: bool = True, skip_models: bool = False):
     _log(f"Iniciando FULL LOAD ate {FULL_LOAD_LIMITE}...")
+    if not dw_is_ready(engine):
+        _log("DW não encontrado ou incompleto. A recriar o Data Warehouse...", "WARN")
+        create_data_warehouse()
+        setup_sandbox()
+
     ficheiros = descobrir_ficheiros(data_min=None, data_max=FULL_LOAD_LIMITE)
     run_bronze(**{f"ficheiros_{k}": v for k, v in ficheiros.items()})
     run_silver(**{f"ficheiros_{k}": [str(f) for f in v] for k, v in ficheiros.items()}, nlp_habilitado=nlp_habilitado)
     #run_profiling()
-    run_load_to_postgres(mode="full_load")
-    run_simple_forecast()
+    run_load_to_postgres(mode="full_load", data_limite=FULL_LOAD_LIMITE)
+    copy_to_sandbox(DW_URL)
+    if not skip_models:
+        _log("A executar modelos preditivos (SARIMA + XGBoost)...")
+        run_sarima(schema=DW_SCHEMA)
+        run_xgboost(schema=DW_SCHEMA)
+    else:
+        _log("Skip models ativado; modelos preditivos nao serao executados.")
     for fonte in FONTES:
         if ficheiros[fonte]:
             dt_max = max((_PARSERS[fonte](f) for f in ficheiros[fonte]), default=FULL_LOAD_LIMITE)
             escrever_watermark(engine, fonte, dt_max, len(ficheiros[fonte]), "Lote Histórico")
     _log("FULL LOAD concluido.")
 
-def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True):
+def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True, skip_models: bool = False):
     _log(f"Iniciando INCREMENTAL ate {data_limite}...")
     watermarks = {f: ler_watermark(engine, f) for f in FONTES}
     ficheiros = descobrir_ficheiros(None, data_limite, watermarks)
     if sum(len(v) for v in ficheiros.values()) == 0:
         _log("Nenhum ficheiro novo."); return
+    if not dw_is_ready(engine):
+        _log("DW não encontrado ou incompleto. A recriar o Data Warehouse...", "WARN")
+        create_data_warehouse()
+        setup_sandbox()
     run_bronze(**{f"ficheiros_{k}": v for k, v in ficheiros.items()})
+    # Silver aplica CDC-like deduplicação por id_viatura e mantém apenas o último snapshot conhecido.
     run_silver(**{f"ficheiros_{k}": [str(f) for f in v] for k, v in ficheiros.items()}, nlp_habilitado=nlp_habilitado)
-    run_load_to_postgres(mode="incremental")
-    run_simple_forecast()
+    # O carregamento para Postgres é idempotente: upserts em dim_veiculo, fct_venda e fct_inventario_mensal.
+    run_load_to_postgres(mode="incremental", data_limite=data_limite)
+    copy_to_sandbox(DW_URL)
+    if not skip_models:
+        _log("A executar modelos preditivos (SARIMA + XGBoost)...")
+        run_sarima(schema=DW_SCHEMA)
+        run_xgboost(schema=DW_SCHEMA)
+    else:
+        _log("Skip models ativado; modelos preditivos nao serao executados.")
     for fonte in FONTES:
         if ficheiros[fonte]:
             dt_max = max((_PARSERS[fonte](f) for f in ficheiros[fonte]), default=data_limite)
@@ -219,9 +269,56 @@ def correr_demo_airflow(url: str, user: str, psw: str, desde: date, ate: date, n
         else: mes += 1
 
 # ─── CLI & MAIN ───────────────────────────────────────────────────────────────
+# ─── GERAÇÃO AUTOMÁTICA ───────────────────────────────────────────────────────
+def verificar_e_gerar_dados():
+    """Verifica se as pastas de dados fonte estão vazias e gera dados se necessário."""
+    _log(f"Verificando fontes em {BASE_DIR.resolve()}", "DEBUG")
+    fontes_vazias = False
+    for pasta in [STANDS_DIR, TRENDS_DIR, FORUM_DIR, HASHTAGS_DIR]:
+        abs_pasta = pasta.resolve()
+        if not abs_pasta.exists():
+            _log(f"Pasta {abs_pasta} nao existe.", "DEBUG")
+            fontes_vazias = True
+            break
+        # Contar ficheiros reais (recursivo), ignorar pastas vazias criadas pelo reset
+        ficheiros = [f for f in abs_pasta.rglob("*") if f.is_file() and not f.name.startswith(".")]
+        if not ficheiros:
+            _log(f"Pasta {abs_pasta} sem ficheiros.", "DEBUG")
+            fontes_vazias = True
+            break
+        else:
+            _log(f"Pasta {abs_pasta} tem {len(ficheiros)} ficheiros.", "DEBUG")
+    
+    if fontes_vazias:
+        _log("Fontes de dados vazias. A iniciar geracao automatica...", "WARN")
+        try:
+            from generate_inventory import generate_inventory
+            from generate_trends import gerar_trends, exportar_json_por_mes
+            from generate_forum import exportar_forum
+            from generate_hashtags import exportar_hashtags
+            from generate_clientes import generate_clientes
+            from generate_demografia import generate_demografia
+            
+            _log("Gerando Clientes...")
+            generate_clientes()
+            _log("Gerando Trends...")
+            exportar_json_por_mes(gerar_trends())
+            _log("Gerando Forum...")
+            exportar_forum()
+            _log("Gerando Hashtags...")
+            exportar_hashtags()
+            _log("Gerando Inventario...")
+            generate_inventory()
+            _log("Gerando Demografia...")
+            generate_demografia()
+            _log("Geracao concluida com sucesso.")
+        except Exception as e:
+            _log(f"Erro na geracao automatica: {e}", "ERROR")
+
+# ─── CLI & MAIN ───────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(prog="main.py", description="Auto Escala — Orquestrador Unificado")
-    parser.add_argument("--mode", choices=["full_load", "incremental", "simulate", "demo", "reset"], required=True)
+    parser.add_argument("--mode", choices=["full_load", "incremental", "simulate", "demo", "reset", "sandbox"], required=True)
     parser.add_argument("--data_limite", type=lambda s: datetime.strptime(s, "%Y-%m-%d").date())
     parser.add_argument("--desde", type=lambda s: datetime.strptime(s, "%Y-%m").date(), default=date(2024,1,1))
     parser.add_argument("--ate", type=lambda s: datetime.strptime(s, "%Y-%m").date(), default=date(2024,12,31))
@@ -229,26 +326,60 @@ def main():
     parser.add_argument("--pausa", type=float, default=0)
     parser.add_argument("--airflow-url", default="http://localhost:8080")
     parser.add_argument("--aguardar", action="store_true")
+    parser.add_argument(
+        "--skip-models",
+        action="store_true",
+        help=(
+            "Omite a execução dos modelos preditivos (SARIMA e XGBoost) neste ciclo. "
+            "Útil quando se quer carregar dados sem aguardar o re-treino completo. "
+            "Os modelos treinam sempre sobre toda a série histórica disponível "
+            "(walk-forward expanding window), pelo que o tempo de execução cresce "
+            "com o histórico. Por defeito, os modelos correm em ambos os modos "
+            "full_load e incremental."
+        ),
+    )
     parser.add_argument("--reset", action="store_true", help="Faz reset antes de correr")
     args = parser.parse_args()
 
+    # MODO RESET: Limpa TUDO (Data Lake + Landing Zone)
     if args.mode == "reset" or args.reset:
-        _log("Iniciando RESET...")
+        _log("Iniciando RESET TOTAL (Data Lake + Sources)...")
+        # 1. Limpar Data Lake
         for p in ["bronze", "silver", "quarantine"]:
             path = BASE_DIR / "data_lake" / p
-            if path.exists(): shutil.rmtree(path); _log(f"Limpo: {p}")
+            if path.exists(): shutil.rmtree(path); _log(f"Limpo Data Lake: {p}")
+        
+        # 2. Limpar Sources (Landing Zone)
+        sources_path = BASE_DIR / "data" / "sources"
+        if sources_path.exists():
+            for d in sources_path.iterdir():
+                if d.is_dir():
+                    shutil.rmtree(d)
+                    d.mkdir() # Recria a pasta vazia
+            _log("Limpas fontes em data/sources")
+            
         create_data_warehouse()
+        setup_sandbox()
+        copy_to_sandbox(DW_URL)
         if args.mode == "reset": return
+
+    # Verificação de dados antes de qualquer carga
+    if args.mode in ["full_load", "incremental", "simulate"]:
+        verificar_e_gerar_dados()
 
     engine = _criar_engine()
     nlp = not args.no_nlp
 
-    if args.mode == "full_load": correr_full_load(engine, nlp)
-    elif args.mode == "incremental": correr_incremental(engine, args.data_limite, nlp)
+    if args.mode == "full_load": correr_full_load(engine, nlp, skip_models=args.skip_models)
+    elif args.mode == "incremental": correr_incremental(engine, args.data_limite, nlp, skip_models=args.skip_models)
     elif args.mode == "simulate": correr_simulacao(engine, args.desde, args.ate, nlp, args.pausa)
     elif args.mode == "demo": correr_demo_airflow(args.airflow_url, "admin", "admin", args.desde, args.ate, nlp, args.pausa, args.aguardar)
+    elif args.mode == "sandbox":
+        _log("Executando copia para a Sandbox...")
+        copy_to_sandbox(DW_URL)
 
     if engine: engine.dispose()
+
 
 if __name__ == "__main__":
     main()

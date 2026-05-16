@@ -1,76 +1,46 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Auto Escala — .gitignore
-# CDGE | Universidade do Minho | 2025-2026
-# ─────────────────────────────────────────────────────────────────────────────
-
-# ── Credenciais e configuração local ────────────────────────────────────────
-.env
-*.env
-!.env.example
-
-# ── Dados gerados (não versionar CSVs/JSON de centenas de MB) ───────────────
-data/sources/
-data
-data/watermark.json
-
-# ── Delta Lake (gerado pelo pipeline — pode ser reconstruído) ───────────────
-data_lake/
-
-# ── Airflow (gerado em runtime pelo Docker — não versionar) ─────────────────
-airflow/logs/
-airflow/plugins/
-airflow_home/
-
-# ── Python ──────────────────────────────────────────────────────────────────
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.eggs/
+*$py.class
 
-# ── Ambientes virtuais ───────────────────────────────────────────────────────
-.venv/
-venv/
+# Environments
+.env
+.venv
 env/
+venv/
 ENV/
+env.bak/
+venv.bak/
 
-# ── Jupyter ──────────────────────────────────────────────────────────────────
-.ipynb_checkpoints/
-*.ipynb
+# Data & Lake (Essential to exclude large generated data)
+data/sources/
+data_lake/
+data/watermark.json
+*.db
+*.sqlite
 
-# ── IDEs ─────────────────────────────────────────────────────────────────────
+# IDEs
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
+*.swp
+*.swo
 
-# ── Sistema operativo ────────────────────────────────────────────────────────
+# OS files
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# ── Logs e temporários ───────────────────────────────────────────────────────
-*.log
-*.tmp
-*.bak
-logs/
-tmp/
+# Project Specific Exclusions (Artifacts from generation)
+/teoricas/
+/Projeto_acabado.R
+/projeto_cdge.zip
+/data_profiling_*.html
+/logs/
+/docker/postgres_data/
+/docker/logs/
+/docker/plugins/
+/data/
+/extras/
 
-# ── Docker volumes (se montados localmente) ──────────────────────────────────
-postgres_data/
-pgadmin_data/
-
-# ── Relatório (PDFs compilados, não o fonte) ─────────────────────────────────
-relatorio/*.pdf
-relatorio/*.aux
-relatorio/*.out
-relatorio/*.toc
-
-# ── Ficheiros adicionais para uso próprio ────────────────────────────────────
-#extras/
-scripts_extra/
-vehicles.py
+# Keep empty directories if needed
+!data/sources/.gitkeep
+!data_lake/.gitkeep

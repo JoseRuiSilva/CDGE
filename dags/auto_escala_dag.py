@@ -110,6 +110,11 @@ Pipeline de analise de tendencias de aquisicao de veiculos usados.
 ### Arquitectura Medallion
 `Landing Zone` -> `Bronze (Delta Lake)` -> `Silver (Delta Lake)` -> `PostgreSQL Star Schema` -> `Prophet ML`
 
+### CDC batch e regras de merge
+- O pipeline incremental lê apenas ficheiros novos usando watermarks em `main.py`.
+- A camada Silver de `inventario` preserva apenas o snapshot mais recente por `id_viatura`.
+- O carregamento PostgreSQL aplica upserts em `dim_veiculo`, `fct_venda` e `fct_inventario_mensal`, garantindo que o mesmo veículo não duplica e que alterações de venda/inventário são reprocessáveis.
+
 ### Trigger Manual para Demo
 ```json
 {"data_limite": "2024-01-31", "nlp_habilitado": false, "modo": "incremental"}

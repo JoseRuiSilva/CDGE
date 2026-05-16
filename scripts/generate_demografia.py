@@ -15,6 +15,7 @@ Projeto Auto Escala — CDGE 2025/2026
 """
 
 import csv
+import random
 from pathlib import Path
 
 BASE_DIR    = Path(__file__).resolve().parent.parent
@@ -49,20 +50,23 @@ POPULACAO_BASE = {
     "Viseu":            351_000,
 }
 
+# Colunas simplificadas: percentagens substituídas por mean_age
 FIELDS = [
     "distrito", "ano_referencia", "populacao_total",
-    "pct_18_24", "pct_25_34", "pct_35_49", "pct_50_64", "pct_65_mais",
-    "pct_masculino", "pct_feminino",
+    "mean_age", "pct_masculino", "pct_feminino",
 ]
 
 
-def _perfil_etario(distrito: str) -> tuple:
-    """Devolve (p18_24, p25_34, p35_49, p50_64, p65m) por tipo de distrito."""
+def _idade_media_distrito(distrito: str) -> float:
+    """Devolve a idade média estimada por tipo de distrito."""
+    # Litoral/Grandes Centros (Mais jovens)
     if distrito in {"Lisboa", "Porto", "Braga"}:
-        return 10.5, 14.5, 24.0, 26.0, 25.0
+        return 41.5
+    # Litoral Sul/Centro
     if distrito in {"Faro", "Aveiro", "Leiria", "Setúbal"}:
-        return  9.0, 12.0, 22.0, 27.0, 30.0
-    return 7.5, 10.0, 19.0, 25.5, 38.0   # interior mais envelhecido
+        return 43.2
+    # Interior (Mais envelhecido)
+    return 47.8
 
 
 def _variacao_populacional(distrito: str, ano: int) -> float:
@@ -75,13 +79,17 @@ def _variacao_populacional(distrito: str, ano: int) -> float:
 
 def generate_demografia() -> None:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    random.seed(42) # Garante que a aleatoriedade é reproduzível
 
     for ano in ANOS:
         out_file = OUTPUT_ROOT / f"demografia_{ano}.csv"
         registos = []
 
         for distrito in DISTRITOS:
-            p18_24, p25_34, p35_49, p50_64, p65m = _perfil_etario(distrito)
+            mean_age = _idade_media_distrito(distrito)
+            # Adiciona um ligeiro ruído de até meio ano para a média não ser estática
+            mean_age += random.uniform(-0.5, 0.5)
+            
             fator   = _variacao_populacional(distrito, ano)
             pop_ano = int(POPULACAO_BASE[distrito] * fator)
 
@@ -89,11 +97,7 @@ def generate_demografia() -> None:
                 "distrito":        distrito,
                 "ano_referencia":  ano,
                 "populacao_total": pop_ano,
-                "pct_18_24":       p18_24,
-                "pct_25_34":       p25_34,
-                "pct_35_49":       p35_49,
-                "pct_50_64":       p50_64,
-                "pct_65_mais":     p65m,
+                "mean_age":        round(mean_age, 2),
                 "pct_masculino":   47.5,
                 "pct_feminino":    52.5,
             })
@@ -103,7 +107,7 @@ def generate_demografia() -> None:
             writer.writeheader()
             writer.writerows(registos)
 
-        print(f"  {out_file.name}  → {len(registos)} distritos")
+        print(f"  {out_file.name}  -> {len(registos)} distritos")
 
     print(f"\nGerados {len(ANOS)} ficheiros anuais em {OUTPUT_ROOT}")
 

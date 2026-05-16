@@ -166,7 +166,7 @@ def generate_clientes() -> None:
             writer.writerows(rows)
 
         total_ficheiros += 1
-        print(f"  {out_file.name}  → {len(rows)} registos")
+        print(f"  {out_file.name}  -> {len(rows)} registos")
 
     total_registos = NUM_CLIENTES * len(meses)
     print(f"\nGerados {total_ficheiros} ficheiros mensais ({total_registos} registos) em {OUTPUT_ROOT}")

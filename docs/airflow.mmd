@@ -24,13 +24,14 @@ flowchart LR
         M5["⚪ silver_trends <br/> silver_pipeline"]:::task
         M6["⚪ silver_forum <br/> silver_pipeline"]:::task
         M7["🗄 load_to_postgres <br/> load_to_postgres"]:::task
-        M8["🔮 run_prophet <br/> prophet_model"]:::task
+        M8["🔮 model_sarima <br/> prev_tendencias"]:::task
+        M9["🔮 model_xgboost <br/> prev_gain"]:::task
 
         M1 --> M4
         M2 --> M5
         M3 --> M6
         M4 & M5 & M6 --> M7
-        M7 --> M8
+        M7 --> M8 & M9
     end
 
     %% ─── DAG SEMANAL ─────────────────────────────────────
@@ -47,7 +48,7 @@ flowchart LR
     CRON_S --> DAG_S
 
     %% ─── DEMO / CI ───────────────────────────────────────
-    subgraph DEMO ["🎬 demo_simulacao.py  (Execução Manual)"]
+    subgraph DEMO ["🎬 main.py --mode demo  (Execução Manual)"]
         direction TB
         D1["① Reset <br/> DROP + CREATE schema"]:::trigger
         D2["② Full Load 2022-2023 <br/> trigger DAG via REST API"]:::trigger

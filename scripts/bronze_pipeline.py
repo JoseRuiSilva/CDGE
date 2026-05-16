@@ -1,3 +1,4 @@
+import hashlib
 import pandas as pd
 import pyarrow as pa
 import json
@@ -57,6 +58,15 @@ def converter_para_string(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].astype("string")  # MELHORIA 3: "string" em vez de str
     return df
+
+
+def _calcular_row_hash(valores: list) -> str:
+    h = hashlib.sha256()
+    for valor in valores:
+        texto = "" if pd.isna(valor) else str(valor)
+        h.update(texto.strip().lower().encode("utf-8"))
+        h.update(b"|")
+    return h.hexdigest()
 
 
 def timestamp_simulado(ano: int, mes: int) -> str:
@@ -140,8 +150,28 @@ def ingerir_inventario(ficheiros: list):
         df["source_stand"]        = filepath.parent.name.capitalize()
         df = converter_para_string(df)
 
+        df = df.reset_index(drop=True)
+        df["source_row_id"] = df.index.to_series().add(1).astype("string").radd(filepath.name + "#")
+        df["row_hash"] = df.apply(
+            lambda row: _calcular_row_hash([
+                row.get("id_viatura", ""),
+                row.get("matricula", ""),
+                row.get("marca", ""),
+                row.get("modelo", ""),
+                row.get("combustivel", ""),
+                row.get("tipo_automovel", ""),
+                row.get("preco_aquisicao", ""),
+                row.get("preco_venda", ""),
+                row.get("data_entrada_stock", ""),
+                row.get("data_venda", ""),
+                row.get("quilometragem", ""),
+                row.get("stand", ""),
+            ]),
+            axis=1,
+        )
+
         if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
-            print(f"  {filepath.name} → {len(df)} registos")
+            print(f"  {filepath.name} -> {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:
@@ -211,7 +241,7 @@ def ingerir_trends(ficheiros: list = None):
         df = converter_para_string(df)
 
         if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
-            print(f"  {filepath.name} → {len(df)} registos")
+            print(f"  {filepath.name} -> {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:
@@ -253,13 +283,21 @@ def ingerir_forum(ficheiros: list = None):
             print(f"  AVISO: {filepath.name} vazio — ignorado.")
             continue
 
-        # Extrair ano e mês do nome: forum_YYYYMM.txt
+        # Extrair data do nome.
+        # Suporta tanto os dumps mensais gerados por generate_forum.py
+        # (forum_YYYYMM.txt) quanto os ficheiros diários esperados no pipeline
+        # original (forum_YYYY-MM-DD_XX.txt).
         try:
-            stem = filepath.stem  # "forum_202201"
-            ano  = int(stem[-6:-2])
-            mes  = int(stem[-2:])
+            partes = filepath.stem.split("_")
+            if len(partes) == 2 and len(partes[1]) == 6:
+                ano = int(partes[1][:4])
+                mes = int(partes[1][4:])
+            else:
+                dt_str = partes[1]
+                dt_obj = datetime.strptime(dt_str, "%Y-%m-%d")
+                ano, mes = dt_obj.year, dt_obj.month
         except (ValueError, IndexError):
-            print(f"  AVISO: nome inesperado '{filepath.name}' — ignorado.")
+            print(f"  AVISO: nome inesperado '{filepath.name}' - ignorado.")
             continue
 
         try:
@@ -276,7 +314,7 @@ def ingerir_forum(ficheiros: list = None):
             "texto_bruto":         texto_bruto,
         })
         if os.environ.get("AE_VERBOSE", "info") == "debug":
-            print(f"  {filepath.name} → 1 registo  ({len(texto_bruto)} chars)")
+            print(f"  {filepath.name} -> 1 registo  ({len(texto_bruto)} chars)")
 
     if registos:
         df = pd.DataFrame(registos)
@@ -374,7 +412,7 @@ def ingerir_hashtags(ficheiros: list = None):
         df = converter_para_string(df)
 
         if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
-            print(f"  {filepath.name} → {len(df)} registos")
+            print(f"  {filepath.name} -> {len(df)} registos")
         dataframes.append(df)
 
     if dataframes:
@@ -407,7 +445,7 @@ def ingerir_clientes(ficheiros: list = None):
         dataframes.append(df)
         
         if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
-            print(f"  {filepath.name} → {len(df)} registos")
+            print(f"  {filepath.name} -> {len(df)} registos")
             
     if dataframes:
         escrever_bronze(pd.concat(dataframes, ignore_index=True), BRONZE_CLIENTES)
@@ -439,7 +477,7 @@ def ingerir_demografia(ficheiros: list = None):
         dataframes.append(df)
         
         if os.environ.get("AE_VERBOSE", "discreto") == "informativo":
-            print(f"  {filepath.name} → {len(df)} registos")
+            print(f"  {filepath.name} -> {len(df)} registos")
             
     if dataframes:
         escrever_bronze(pd.concat(dataframes, ignore_index=True), BRONZE_DEMOGRAFIA)
