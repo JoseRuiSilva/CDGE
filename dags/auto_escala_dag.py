@@ -113,7 +113,7 @@ Pipeline de analise de tendencias de aquisicao de veiculos usados.
 ### CDC batch e regras de merge
 - O pipeline incremental lê apenas ficheiros novos usando watermarks em `main.py`.
 - A camada Silver de `inventario` preserva apenas o snapshot mais recente por `id_viatura`.
-- O carregamento PostgreSQL aplica upserts em `dim_veiculo`, `fct_venda` e `fct_inventario_mensal`, garantindo que o mesmo veículo não duplica e que alterações de venda/inventário são reprocessáveis.
+- O carregamento PostgreSQL aplica upserts em `dim_veiculo`, `fact_venda` e `fact_inventario_mensal`, garantindo que o mesmo veículo não duplica e que alterações de venda/inventário são reprocessáveis.
 
 ### Trigger Manual para Demo
 ```json

@@ -10,7 +10,7 @@ O projeto utiliza uma arquitetura **Medallion** implementada sobre **Delta Lake*
 
 - **Bronze (Ingestão):** Armazena os dados brutos exatamente como chegam, adicionando metadados de rastreabilidade (`ingestion_timestamp`, `source_file`).
 - **Silver (Limpeza e Qualidade):** Aplica tipagem, normalização de marcas/modelos via dicionário, limpeza de texto e **análise de sentimento (NLP RoBERTa)**. Registos inválidos são movidos para a **Quarentena**.
-- **PostgreSQL (Star Schema):** Camada final otimizada para Business Intelligence (Power BI), com dimensões (`dim_veiculo`, `dim_cliente`, `dim_demografia`) e factos (`fct_venda`, `fact_trends`, `fact_forum_sentiment`).
+- **PostgreSQL (Star Schema):** Camada final otimizada para Business Intelligence (Power BI), com dimensões (`dim_veiculo`, `dim_cliente`, `dim_demografia`) e factos (`fact_venda`, `fact_trends`, `fact_forum_sentiment`).
 
 ## 3. Fontes de Dados
 O sistema ingere os três tipos de dados exigidos pelo enunciado:

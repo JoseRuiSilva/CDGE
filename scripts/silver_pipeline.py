@@ -271,7 +271,12 @@ def _escrever_quarentena(df_quarentena: pd.DataFrame, delta_path: str):
 def _registar_qualidade(engine, fonte: str, total: int, ok: int, q: int, df_batch: pd.DataFrame = None, notas: str = None):
     try:
         campo_mais_nulo = None
+        n_linhas_duplicadas = 0
+        n_valores_ausentes = 0
+        
         if df_batch is not None and not df_batch.empty:
+            n_linhas_duplicadas = df_batch.duplicated().sum()
+            n_valores_ausentes = df_batch.isna().sum().sum()
             nulos = df_batch.isna().sum()
             if nulos.max() > 0:
                 campo_mais_nulo = nulos.idxmax()
@@ -280,11 +285,11 @@ def _registar_qualidade(engine, fonte: str, total: int, ok: int, q: int, df_batc
         with engine.begin() as conn:
             conn.execute(text(f"""
                 INSERT INTO {DW_SCHEMA}.data_quality_log 
-                    (fonte, data_run, total_registos, registos_ok, registos_quarentena, taxa_quarentena_pct, campo_mais_nulo, notas) 
-                VALUES (:f, :d, :t, :o, :q, :tx, :cn, :n)
+                    (fonte, data_run, total_registos, registos_ok, registos_quarentena, taxa_quarentena_pct, n_linhas_duplicadas, n_valores_ausentes, campo_mais_nulo, notas) 
+                VALUES (:f, :d, :t, :o, :q, :tx, :nd, :na, :cn, :n)
             """), {
                 "f": fonte, "d": datetime.now(timezone.utc), "t": total, "o": ok, "q": q, "tx": taxa, 
-                "cn": campo_mais_nulo, "n": notas
+                "nd": int(n_linhas_duplicadas), "na": int(n_valores_ausentes), "cn": campo_mais_nulo, "n": notas
             })
     except Exception as e:
         _log(f"Erro ao registar qualidade: {e}", "WARN")

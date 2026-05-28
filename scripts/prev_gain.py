@@ -48,7 +48,7 @@ def get_sql_features_base(schema):
 WITH stock_base AS (
     -- Âncora: todos os combos marca×tipo×combustivel×localizacao×mês com inventário.
     -- Inclui meses sem vendas → modelo aprende expected_gain=0 (dados de treino críticos).
-    -- localizacao_key vem de dim_stand via stand_key (fct_inventario_mensal → dim_stand).
+    -- localizacao_key vem de dim_stand via stand_key (fact_inventario_mensal → dim_stand).
     SELECT
         dv.marca_key,
         dv.tipo_key,
@@ -59,7 +59,7 @@ WITH stock_base AS (
         dtp.tempo_key,
         COUNT(fim.inventario_key)  AS n_stock,
         AVG(fim.valor_em_stock)    AS mean_valor_stock
-    FROM {schema}.fct_inventario_mensal fim
+    FROM {schema}.fact_inventario_mensal fim
     JOIN {schema}.dim_veiculo dv  ON fim.veiculo_key = dv.veiculo_key
     JOIN {schema}.dim_stand   ds  ON fim.stand_key   = ds.stand_key
     JOIN {schema}.dim_tempo   dtp ON fim.tempo_key   = dtp.tempo_key
@@ -87,7 +87,7 @@ hashtags_mensal AS (
         EXTRACT(MONTH FROM (dtp.data + INTERVAL '3 days'))::int AS mes,
         SUM(fh.volume)            AS volume_hashtag,
         AVG(fh.variacao_semanal)  AS variacao_semanal
-    FROM {schema}.fct_hashtag_volume fh
+    FROM {schema}.fact_hashtag_volume fh
     JOIN {schema}.dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     WHERE fh.marca_key <> -1
     GROUP BY 1, 2, 3, 4, 5
@@ -111,7 +111,7 @@ compradores AS (
         AVG(dc.idade)                                            AS mean_age_buyers,
         AVG(CASE WHEN dc.genero = 'M' THEN 1.0 ELSE 0.0 END)    AS pct_masculino_compradores,
         AVG(fv.margem / NULLIF(fv.preco_venda, 0))               AS margem_pct_media
-    FROM {schema}.fct_venda fv
+    FROM {schema}.fact_venda fv
     JOIN {schema}.dim_veiculo dv  ON fv.veiculo_key    = dv.veiculo_key
     JOIN {schema}.dim_tempo   dtp ON fv.tempo_venda_key = dtp.tempo_key
     JOIN {schema}.dim_cliente dc  ON fv.cliente_key    = dc.cliente_key
@@ -167,7 +167,7 @@ WITH stock AS (
         dtp.ano, dtp.mes,
         COUNT(*)                  AS n_stock,
         AVG(fim.valor_em_stock)   AS mean_valor_stock
-    FROM {schema}.fct_inventario_mensal fim
+    FROM {schema}.fact_inventario_mensal fim
     JOIN {schema}.dim_veiculo dv  ON fim.veiculo_key = dv.veiculo_key
     JOIN {schema}.dim_tempo dtp ON fim.tempo_key   = dtp.tempo_key
     WHERE dv.veiculo_key <> -1
@@ -180,7 +180,7 @@ vendas AS (
         dtp.ano, dtp.mes,
         COUNT(*)        AS n_vendas,
         AVG(fv.margem)  AS mean_margem
-    FROM {schema}.fct_venda fv
+    FROM {schema}.fact_venda fv
     JOIN {schema}.dim_veiculo dv  ON fv.veiculo_key    = dv.veiculo_key
     JOIN {schema}.dim_tempo dtp ON fv.tempo_venda_key = dtp.tempo_key
     WHERE dv.veiculo_key <> -1

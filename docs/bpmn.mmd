@@ -55,7 +55,7 @@ flowchart TD
     subgraph PG ["🗄 PostgreSQL — auto_escala_dw"]
         direction LR
         DIMS["Dimensões <br/> dim_veiculo, dim_modelo, <br/> dim_stand, dim_cliente, <br/> dim_demografia"]:::gold
-        FACTS["Factos <br/> fct_venda, fact_trends, <br/> fact_forum_sentiment, <br/> fct_hashtag_volume"]:::gold
+        FACTS["Factos <br/> fact_venda, fact_trends, <br/> fact_forum_sentiment, <br/> fact_hashtag_volume"]:::gold
         VIEWS["Views de Mart <br/> vw_mart_compras <br/> vw_mart_stock <br/> vw_mart_direcao"]:::gold
     end
 

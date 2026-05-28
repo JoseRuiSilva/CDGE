@@ -13,8 +13,8 @@ Justificacao arquitectural:
   (dentro da semana).
 
 Agendamento: segunda-feira as 06:00 UTC (@weekly)
-  Semana 1: hashtags_2024W01.xml -> Bronze -> Silver -> fct_hashtag_volume
-  Semana 2: hashtags_2024W02.xml -> Bronze -> Silver -> fct_hashtag_volume
+  Semana 1: hashtags_2024W01.xml -> Bronze -> Silver -> fact_hashtag_volume
+  Semana 2: hashtags_2024W02.xml -> Bronze -> Silver -> fact_hashtag_volume
   ...
 
 Grafo de tasks:
@@ -74,7 +74,7 @@ def _parse_data_limite(conf: dict, logical_date: datetime) -> date:
     description=(
         "Pipeline semanal de hashtags Auto Escala. "
         "Processa os ficheiros XML semanais de social listening: "
-        "Bronze -> Silver -> fct_hashtag_volume no PostgreSQL."
+        "Bronze -> Silver -> fact_hashtag_volume no PostgreSQL."
     ),
     # Domingo 23:30 UTC -- stand fechado, dados da semana "fechados"
     # O pipeline corre enquanto ninguem esta a trabalhar.
@@ -110,7 +110,7 @@ Landing Zone (XML semanal)
        ↓
   Silver Delta    ← limpeza, validacao, MERGE
        ↓
-PostgreSQL        ← UPSERT em dim_hashtag + fct_hashtag_volume
+PostgreSQL        ← UPSERT em dim_hashtag + fact_hashtag_volume
        ↓
 Watermark         ← pipeline_control actualizado para 'hashtags'
 ```
@@ -151,7 +151,7 @@ def auto_escala_hashtags_semanal():
           2. Descobrir ficheiros XML novos (data > watermark E <= data_limite)
           3. Bronze: append dos ficheiros semanais novos
           4. Silver: MERGE/UPSERT com os novos ficheiros
-          5. Load: UPSERT em dim_hashtag + fct_hashtag_volume no PostgreSQL
+          5. Load: UPSERT em dim_hashtag + fact_hashtag_volume no PostgreSQL
           6. Actualizar watermark 'hashtags' (so apos sucesso)
         """
         from main import (

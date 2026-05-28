@@ -145,7 +145,7 @@ CREATE TABLE dim_dicionario_veiculo (
 -- FACTOS
 -- =============================================================================
 
-CREATE TABLE fct_venda (
+CREATE TABLE fact_venda (
     venda_key         SERIAL PRIMARY KEY,
     veiculo_key       INTEGER NOT NULL REFERENCES dim_veiculo(veiculo_key),
     stand_key         INTEGER NOT NULL REFERENCES dim_stand(stand_key),
@@ -160,7 +160,7 @@ CREATE TABLE fct_venda (
     UNIQUE (veiculo_key, stand_key, tempo_entrada_key)
 );
 
-CREATE TABLE fct_inventario_mensal (
+CREATE TABLE fact_inventario_mensal (
     inventario_key  SERIAL PRIMARY KEY,
     tempo_key       INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
     stand_key       INTEGER NOT NULL REFERENCES dim_stand(stand_key),
@@ -197,7 +197,7 @@ CREATE TABLE fact_forum_sentiment (
     UNIQUE (tempo_key, marca_key, modelo_key, tipo_key, combustivel_key)
 );
 
-CREATE TABLE fct_hashtag_volume (
+CREATE TABLE fact_hashtag_volume (
     hashtag_volume_key SERIAL PRIMARY KEY,
     tempo_key          INTEGER NOT NULL REFERENCES dim_tempo(tempo_key),
     fonte_key          INTEGER NOT NULL REFERENCES dim_fonte(fonte_key),
@@ -254,6 +254,8 @@ CREATE TABLE data_quality_log (
     registos_ok         INTEGER,
     registos_quarentena INTEGER,
     taxa_quarentena_pct NUMERIC(6,2),
+    n_linhas_duplicadas INTEGER,
+    n_valores_ausentes  INTEGER,
     campo_mais_nulo     VARCHAR(100),
     notas               TEXT
 );
@@ -330,7 +332,7 @@ hashtags_mensal AS (
         dtp.ano, dtp.mes,
         SUM(volume) AS volume_hashtag_modelo,
         AVG(variacao_semanal) AS variacao_semanal_hashtag
-    FROM fct_hashtag_volume fh
+    FROM fact_hashtag_volume fh
     JOIN dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     GROUP BY 1, 2, 3, 4, 5, 6
 ),
@@ -343,7 +345,7 @@ sarima_hashtags AS (
         dtp.ano,
         dtp.mes,
         SUM(fh.volume) AS ml_total_posts
-    FROM fct_hashtag_volume fh
+    FROM fact_hashtag_volume fh
     JOIN dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     WHERE NOT (fh.marca_key = -1 AND fh.tipo_key = -1 AND fh.combustivel_key = -1)
     GROUP BY 1, 2, 3, 4, 5, 6
@@ -374,7 +376,7 @@ xgb_hashtags AS (
         dtp.mes,
         SUM(fh.volume) AS ml_volume_hashtag,
         AVG(fh.variacao_semanal) AS ml_variacao_semanal_media
-    FROM fct_hashtag_volume fh
+    FROM fact_hashtag_volume fh
     JOIN dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     WHERE NOT (fh.marca_key = -1 AND fh.tipo_key = -1 AND fh.combustivel_key = -1)
     GROUP BY 1, 2, 3, 4, 5, 6
@@ -388,14 +390,25 @@ xgb_vendas AS (
         dtp.ano,
         dtp.mes,
         AVG(fv.margem / NULLIF(fv.preco_venda, 0)) AS ml_margem_pct_media
-    FROM fct_venda fv
+    FROM fact_venda fv
     JOIN dim_veiculo dv ON fv.veiculo_key = dv.veiculo_key
     JOIN dim_stand ds ON fv.stand_key = ds.stand_key
     JOIN dim_tempo dtp ON fv.tempo_venda_key = dtp.tempo_key
     GROUP BY 1, 2, 3, 4, 5, 6
 )
 SELECT
-    dm.marca,
+    COALESCE(
+        NULLIF(dm.marca, 'Unknown'),
+        (
+            SELECT dm2.marca 
+            FROM dim_veiculo dv 
+            JOIN dim_marca dm2 ON dv.marca_key = dm2.marca_key 
+            WHERE dv.modelo_key = ft.modelo_key 
+              AND dv.modelo_key != -1 
+            LIMIT 1
+        ),
+        'Unknown'
+    )                                               AS marca,
     dmo.modelo,
     dt.tipo_automovel,
     dc.combustivel,
@@ -428,7 +441,7 @@ SELECT
     -- Stock e Histórico
     (
         SELECT AVG(fv.dias_em_stock)
-        FROM fct_venda fv
+        FROM fact_venda fv
         JOIN dim_veiculo dv ON fv.veiculo_key = dv.veiculo_key
         WHERE (dv.marca_key = ft.marca_key OR ft.marca_key = -1)
           AND (dv.modelo_key = ft.modelo_key OR ft.modelo_key = -1)
@@ -438,7 +451,7 @@ SELECT
 
     (
         SELECT COUNT(*)
-        FROM fct_inventario_mensal fim
+        FROM fact_inventario_mensal fim
         JOIN dim_veiculo dv ON fim.veiculo_key = dv.veiculo_key
         JOIN dim_tempo   dtp2 ON fim.tempo_key = dtp2.tempo_key
         WHERE (dv.marca_key = ft.marca_key OR ft.marca_key = -1)
@@ -447,7 +460,7 @@ SELECT
           AND (dv.combustivel_key = ft.combustivel_key OR ft.combustivel_key = -1)
           AND (dtp2.ano, dtp2.mes) = (
               SELECT dtp3.ano, dtp3.mes
-              FROM fct_inventario_mensal fim3
+              FROM fact_inventario_mensal fim3
               JOIN dim_tempo dtp3 ON fim3.tempo_key = dtp3.tempo_key
               ORDER BY dtp3.ano DESC, dtp3.mes DESC LIMIT 1
           )
@@ -532,7 +545,7 @@ SELECT
         ELSE 'Normal'
     END AS status_envelhecimento,
     dt.data AS data_referencia
-FROM fct_inventario_mensal fim
+FROM fact_inventario_mensal fim
 JOIN dim_veiculo dv ON fim.veiculo_key = dv.veiculo_key
 JOIN dim_marca dm ON dv.marca_key = dm.marca_key
 JOIN dim_modelo dmo ON dv.modelo_key = dmo.modelo_key
@@ -564,7 +577,7 @@ vendas_mensais AS (
         SUM(fv.preco_venda) AS faturacao,
         SUM(fv.margem) AS lucro_total,
         AVG(fv.margem / NULLIF(fv.preco_venda, 0)) * 100 AS margem_media_pct
-    FROM fct_venda fv
+    FROM fact_venda fv
     JOIN dim_veiculo dv ON fv.veiculo_key = dv.veiculo_key
     JOIN dim_tempo dt ON fv.tempo_venda_key = dt.tempo_key
     GROUP BY 1, 2, 3
@@ -580,7 +593,7 @@ SELECT
     COALESCE(fm.sentimento_medio, 0) AS sentimento_forum,
     COALESCE(fm.total_mencoes, 0) AS mencoes_forum,
     COALESCE(fm.sentimento_medio, 0) AS sentimento_forum_medio
-FROM fct_venda fv
+FROM fact_venda fv
 JOIN dim_veiculo dv ON fv.veiculo_key = dv.veiculo_key
 JOIN dim_marca dm ON dv.marca_key = dm.marca_key
 JOIN dim_tempo dt ON fv.tempo_venda_key = dt.tempo_key
@@ -613,10 +626,10 @@ social_mensal AS (
         fh.marca_key,
         fh.tipo_key,
         fh.combustivel_key,
-        EXTRACT(YEAR FROM (dtp.data + INTERVAL '3 days'))::int AS ano,
-        EXTRACT(MONTH FROM (dtp.data + INTERVAL '3 days'))::int AS mes,
+        dtp.ano,
+        dtp.mes,
         SUM(fh.volume) AS total_posts
-    FROM auto_escala_dw.fct_hashtag_volume fh
+    FROM auto_escala_dw.fact_hashtag_volume fh
     JOIN auto_escala_dw.dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     WHERE NOT (fh.marca_key = -1 AND fh.tipo_key = -1 AND fh.combustivel_key = -1)
     GROUP BY 1, 2, 3, 4, 5
@@ -683,7 +696,7 @@ social_mensal AS (
         marca_key, tipo_key, combustivel_key, dtp.ano, dtp.mes,
         SUM(volume) AS volume_hashtag,
         AVG(variacao_semanal) AS variacao_semanal_media
-    FROM auto_escala_dw.fct_hashtag_volume fh
+    FROM auto_escala_dw.fact_hashtag_volume fh
     JOIN auto_escala_dw.dim_tempo dtp ON fh.tempo_key = dtp.tempo_key
     WHERE NOT (fh.marca_key = -1 AND fh.tipo_key = -1 AND fh.combustivel_key = -1)
     GROUP BY 1, 2, 3, 4, 5
@@ -749,7 +762,7 @@ LEFT JOIN LATERAL (
         AVG(dc_cli.idade)                                            AS mean_age_buyers,
         AVG(CASE WHEN dc_cli.genero = 'M' THEN 1.0 ELSE 0.0 END)   AS pct_masculino,
         AVG(fv.margem / NULLIF(fv.preco_venda, 0))                  AS margem_pct_media
-    FROM fct_venda fv
+    FROM fact_venda fv
     JOIN dim_veiculo dv   ON fv.veiculo_key    = dv.veiculo_key
     JOIN dim_tempo   dtp  ON fv.tempo_venda_key = dtp.tempo_key
     -- stand do mesmo distrito que a localização do trends
@@ -770,8 +783,8 @@ LEFT JOIN LATERAL (
 -- ÍNDICES
 -- =============================================================================
 CREATE INDEX idx_dim_cliente_nif ON dim_cliente(nif);
-CREATE INDEX idx_fct_venda_veiculo ON auto_escala_dw.fct_venda(veiculo_key);
-CREATE INDEX idx_fct_venda_tempo_venda ON auto_escala_dw.fct_venda(tempo_venda_key);
+CREATE INDEX idx_fact_venda_veiculo ON auto_escala_dw.fact_venda(veiculo_key);
+CREATE INDEX idx_fact_venda_tempo_venda ON auto_escala_dw.fact_venda(tempo_venda_key);
 CREATE INDEX idx_fact_trends_tempo ON auto_escala_dw.fact_trends(tempo_key);
 CREATE INDEX idx_fact_forum_tempo ON auto_escala_dw.fact_forum_sentiment(tempo_key);
 
@@ -816,6 +829,8 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('marca', 'Citroen',        'Citroën'),
     ('marca', 'CITROEN',        'Citroën'),
     ('marca', 'citroen',        'Citroën'),
+    ('marca', 'citroën',        'Citroën'),
+    ('marca', 'Citroën',        'Citroën'),
     ('marca', 'hyundai',        'Hyundai'),
     ('marca', 'Hundai',         'Hyundai'),
     ('marca', 'Hyunday',        'Hyundai'),
@@ -922,21 +937,34 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('combustivel', '100%Elétrico',          'Elétrico'),
     ('combustivel', '100%Eletrico',          'Elétrico'),
     ('combustivel', 'elétrico',              'Elétrico'),
+    ('combustivel', 'elétricos',             'Elétrico'),
+    ('combustivel', 'eletricos',             'Elétrico'),
+    ('combustivel', 'elétricas',             'Elétrico'),
+    ('combustivel', 'eletricas',             'Elétrico'),
     ('combustivel', 'gasolina',              'Gasolina'),
     ('combustivel', 'GASOLINA',              'Gasolina'),
     ('combustivel', 'Gasoline',              'Gasolina'),
     ('combustivel', 'gasoleo',               'Gasóleo'),
     ('combustivel', 'Gasoleo',               'Gasóleo'),
     ('combustivel', 'GASOLEO',               'Gasóleo'),
+    ('combustivel', 'gasóleo',               'Gasóleo'),
+    ('combustivel', 'Gasóleo',               'Gasóleo'),
+    ('combustivel', 'GASÓLEO',               'Gasóleo'),
     ('combustivel', 'Diesel',                'Gasóleo'),
     ('combustivel', 'diesel',                'Gasóleo'),
-    ('combustivel', 'Gasoleo',               'Gasóleo'),
     ('combustivel', 'hibrido a gasolina',    'Híbrido'),
+    ('combustivel', 'híbrido a gasolina',    'Híbrido'),
+    ('combustivel', 'Híbrido a Gasolina',    'Híbrido'),
     ('combustivel', 'Hibrido Gasolina',      'Híbrido'),
     ('combustivel', 'Híbrido Gasolina',      'Híbrido'),
     ('combustivel', 'hybrid gasolina',       'Híbrido'),
+    ('combustivel', 'hibrido a gasoleo',      'Híbrido'),
+    ('combustivel', 'híbrido a gasóleo',      'Híbrido'),
+    ('combustivel', 'Híbrido a Gasóleo',      'Híbrido'),
     ('combustivel', 'híbrido',               'Híbrido'),
     ('combustivel', 'hibrido',               'Híbrido'),
+    ('combustivel', 'híbridos',              'Híbrido'),
+    ('combustivel', 'hibridos',              'Híbrido'),
     ('combustivel', 'gpl',                   'GPL'),
     ('combustivel', 'G.P.L.',                'GPL'),
     -- x AUSENTES (quarentena): H2, Biogás, Solar, Ar
@@ -950,13 +978,22 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('tipo_automovel', 'Suv',               'SUV'),
     ('tipo_automovel', '4x4',               'SUV'),
     ('tipo_automovel', 'Todo-o-Terreno',    'SUV'),
+    ('tipo_automovel', 'suvs',              'SUV'),
     ('tipo_automovel', 'hatchback',         'Hatchback'),
     ('tipo_automovel', 'HATCHBACK',         'Hatchback'),
     ('tipo_automovel', 'Hatch',             'Hatchback'),
+    ('tipo_automovel', 'hatchbacks',        'Hatchback'),
     ('tipo_automovel', 'citadino',          'Citadino'),
     ('tipo_automovel', 'CITADINO',          'Citadino'),
     ('tipo_automovel', 'City',              'Citadino'),
     ('tipo_automovel', 'city car',          'Citadino'),
+    ('tipo_automovel', 'citadinos',         'Citadino'),
+    ('tipo_automovel', 'sedan',             'Sedan'),
+    ('tipo_automovel', 'sedans',            'Sedan'),
+    ('tipo_automovel', 'elétrico',          'Elétrico'),
+    ('tipo_automovel', 'elétricos',         'Elétrico'),
+    ('tipo_automovel', 'eletrico',          'Elétrico'),
+    ('tipo_automovel', 'eletricos',         'Elétrico'),
 
     -- -------------------------------------------------------------------------
     -- NOVOS MODELOS DO CATÁLOGO EXPANDIDO (1)
@@ -1013,6 +1050,10 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('modelo', '500x',          '500X'),
     ('modelo', 'leon',          'Leon'),
     ('modelo', 'ateca',         'Ateca'),
+    ('modelo', '308',            '308'),
+    ('modelo', 'c3',             'C3'),
+    ('modelo', 'arona',          'Arona'),
+    ('modelo', 'serie 5',        'Série 5'),
 
     -- -------------------------------------------------------------------------
     -- NOVAS COMBINAÇÕES MARCA_MODELO PARA O FÓRUM (Exemplos críticos)
@@ -1038,7 +1079,40 @@ INSERT INTO dim_dicionario_veiculo (campo, valor_original, valor_normalizado) VA
     ('marca_modelo', 'nissan juke',             'Nissan|Juke'),
     ('marca_modelo', 'opel mokka',              'Opel|Mokka'),
     ('marca_modelo', 'citroen c4',              'Citroën|C4'),
-    ('marca_modelo', 'seat leon',               'Seat|Leon')
+    ('marca_modelo', 'citroën c4',              'Citroën|C4'),
+    ('marca_modelo', 'seat leon',               'Seat|Leon'),
+    ('marca_modelo', 'peugeot 308',             'Peugeot|308'),
+    ('marca_modelo', 'bmw serie 5',             'BMW|Série 5'),
+    ('marca_modelo', 'bmw série 5',             'BMW|Série 5'),
+    ('marca_modelo', 'volkswagen t-cross',      'Volkswagen|T-Cross'),
+    ('marca_modelo', 'vw t-cross',              'Volkswagen|T-Cross'),
+    ('marca_modelo', 'toyota rav4',             'Toyota|RAV4'),
+    ('marca_modelo', 'peugeot 5008',            'Peugeot|5008'),
+    ('marca_modelo', 'renault arkana',          'Renault|Arkana'),
+    ('marca_modelo', 'bmw x3',                  'BMW|X3'),
+    ('marca_modelo', 'mercedes cla',            'Mercedes|CLA'),
+    ('marca_modelo', 'mercedes glc',            'Mercedes|GLC'),
+    ('marca_modelo', 'mercedes eqa',            'Mercedes|EQA'),
+    ('marca_modelo', 'audi a1',                 'Audi|A1'),
+    ('marca_modelo', 'audi q2',                 'Audi|Q2'),
+    ('marca_modelo', 'audi q5',                 'Audi|Q5'),
+    ('marca_modelo', 'tesla model s',           'Tesla|Model S'),
+    ('marca_modelo', 'hyundai i20',             'Hyundai|i20'),
+    ('marca_modelo', 'hyundai i30',             'Hyundai|i30'),
+    ('marca_modelo', 'kia rio',                 'Kia|Rio'),
+    ('marca_modelo', 'kia ceed',                'Kia|Ceed'),
+    ('marca_modelo', 'kia stonic',              'Kia|Stonic'),
+    ('marca_modelo', 'nissan micra',            'Nissan|Micra'),
+    ('marca_modelo', 'nissan ariya',            'Nissan|Ariya'),
+    ('marca_modelo', 'opel grandland',          'Opel|Grandland'),
+    ('marca_modelo', 'citroen c3 aircross',     'Citroën|C3 Aircross'),
+    ('marca_modelo', 'citroën c3 aircross',     'Citroën|C3 Aircross'),
+    ('marca_modelo', 'citroen c5 aircross',     'Citroën|C5 Aircross'),
+    ('marca_modelo', 'citroën c5 aircross',     'Citroën|C5 Aircross'),
+    ('marca_modelo', 'fiat panda',              'Fiat|Panda'),
+    ('marca_modelo', 'fiat tipo',               'Fiat|Tipo'),
+    ('marca_modelo', 'fiat 500x',               'Fiat|500X'),
+    ('marca_modelo', 'seat ateca',              'Seat|Ateca')
 ON CONFLICT (campo, valor_original) DO NOTHING;
 
 -- =============================================================================

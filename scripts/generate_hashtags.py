@@ -707,7 +707,7 @@ def exportar_hashtags() -> dict[str, int]:
         entries_count = len(valid_days) * len(HASHTAGS)
         summary[f"{iso_year}-W{iso_week:02d}"] = entries_count
 
-        print(f"{out_file}  → {entries_count} entries geradas.")
+        print(f"{out_file}  -> {entries_count} entries geradas.")
 
     return summary
 

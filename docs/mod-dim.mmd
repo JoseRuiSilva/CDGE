@@ -88,7 +88,7 @@ erDiagram
 
     %% ─── FACTOS ─────────────────────────────────────────
 
-    fct_venda {
+    fact_venda {
         int venda_key PK
         int veiculo_key FK
         int stand_key FK
@@ -102,7 +102,7 @@ erDiagram
         int dias_em_stock
     }
 
-    fct_inventario_mensal {
+    fact_inventario_mensal {
         int inventario_key PK
         int tempo_key FK
         int stand_key FK
@@ -130,7 +130,7 @@ erDiagram
         decimal delta_sentimento
     }
 
-    fct_hashtag_volume {
+    fact_hashtag_volume {
         int hashtag_volume_key PK
         int tempo_key FK
         int fonte_key FK
@@ -164,24 +164,24 @@ erDiagram
     dim_modelo ||--o{ dim_veiculo : ""
     dim_modelo ||--o{ fact_trends : ""
     dim_modelo ||--o{ fact_forum_sentiment : ""
-    dim_modelo ||--o{ fct_hashtag_volume : ""
+    dim_modelo ||--o{ fact_hashtag_volume : ""
     dim_modelo ||--o{ fact_previsao : ""
 
-    dim_veiculo ||--o{ fct_venda : ""
-    dim_veiculo ||--o{ fct_inventario_mensal : ""
+    dim_veiculo ||--o{ fact_venda : ""
+    dim_veiculo ||--o{ fact_inventario_mensal : ""
 
-    dim_stand ||--o{ fct_venda : ""
-    dim_stand ||--o{ fct_inventario_mensal : ""
+    dim_stand ||--o{ fact_venda : ""
+    dim_stand ||--o{ fact_inventario_mensal : ""
 
-    dim_cliente ||--o{ fct_venda : ""
+    dim_cliente ||--o{ fact_venda : ""
 
-    dim_tempo ||--o{ fct_venda : "entrada"
-    dim_tempo ||--o{ fct_venda : "venda"
-    dim_tempo ||--o{ fct_inventario_mensal : "snapshot"
+    dim_tempo ||--o{ fact_venda : "entrada"
+    dim_tempo ||--o{ fact_venda : "venda"
+    dim_tempo ||--o{ fact_inventario_mensal : "snapshot"
     dim_tempo ||--o{ fact_trends : ""
     dim_tempo ||--o{ fact_forum_sentiment : ""
-    dim_tempo ||--o{ fct_hashtag_volume : ""
+    dim_tempo ||--o{ fact_hashtag_volume : ""
     dim_tempo ||--o{ fact_previsao : "referencia"
     dim_tempo ||--o{ fact_previsao : "alvo"
 
-    dim_fonte ||--o{ fct_hashtag_volume : ""
+    dim_fonte ||--o{ fact_hashtag_volume : ""

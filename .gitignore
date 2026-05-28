@@ -40,6 +40,9 @@ Thumbs.db
 /docker/plugins/
 /data/
 /extras/
+explicação_modelos.md
+/contexto_projeto.txt
+/implementation_spark.md
 
 # Keep empty directories if needed
 !data/sources/.gitkeep

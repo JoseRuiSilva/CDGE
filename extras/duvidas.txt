@@ -6,3 +6,13 @@ Faz sentido haver batch semanal das hashtags? Ou seria mais compreensível guard
 SCD Tipo 1 com tiggers de log.
 Afinal é fact_* ou fct_*?
 Seria mais fácil para a nossa previsão se os nossos dados das várias fontes usassem os mesmos modelo. No "mundo real", nós se calhar modavamos com base nos nossos conhecimentos do mercado.
+Usamos Spark ou podemos continuar com pandas?
+Temos que usar ferramentas de ingestão como  Apache Kafka, Apache NiFi, AWS Kinesis?
+Temos que ver coisas de alertas em situações de erros entre outros.
+"A auditoria de dados é o processo de monitorizar e documentar o
+processo de limpeza de dados (e os seus resultados), para que seja
+possível fazer a avaliação da qualidade e integridade dos dados." Já temos isto mas quero ver se dá para melhorar.
+Semelhante para a tabela de profiling de dados.
+(OLHAR MUITO BEM PARA O PDF DE INTEGRAÇÃO DE DADOS)
+Temos que saber explicar muito bem se temos ETL ou ELT e se é DLH ou DL+DW ou DLH c/ DWExterno.
+Temos que rever a implementação do Sandbox com base no PDF.

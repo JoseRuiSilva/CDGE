@@ -653,7 +653,7 @@ def exportar_forum() -> dict[str, int]:
 
         summary[f"{ano}-{mes}"] = len(dump)
 
-        print(f"{out_file}  → {len(dump)} caracteres gerados.")
+        print(f"{out_file}  -> {len(dump)} caracteres gerados.")
 
     return summary
 

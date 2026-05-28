@@ -389,9 +389,9 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             return int(res.iloc[0]["fonte_key"]) if not res.empty else None
 
         # ======================================================================
-        # FCT_VENDA (Com verificação de histórico SCD2)
+        # FACT_VENDA (Com verificação de histórico SCD2)
         # ======================================================================
-        print("  A processar fct_venda...")
+        print("  A processar fact_venda...")
         if not df_inv.empty:
             fct = df_inv.copy()
             fct = fct.dropna(subset=["preco_venda", "data_venda"]) # Só carros vendidos
@@ -465,7 +465,7 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             
             conn.execute(
                 text(f"""
-                    INSERT INTO {DW_SCHEMA}.fct_venda (veiculo_key, stand_key, tempo_entrada_key, tempo_venda_key, cliente_key, quilometragem, preco_aquisicao, preco_venda, margem, dias_em_stock)
+                    INSERT INTO {DW_SCHEMA}.fact_venda (veiculo_key, stand_key, tempo_entrada_key, tempo_venda_key, cliente_key, quilometragem, preco_aquisicao, preco_venda, margem, dias_em_stock)
                     VALUES (:veiculo_key, :stand_key, :tempo_entrada_key, :tempo_venda_key, :cliente_key, :quilometragem, :preco_aquisicao, :preco_venda, :margem, :dias_em_stock)
                     ON CONFLICT (veiculo_key, stand_key, tempo_entrada_key) DO UPDATE SET
                         tempo_venda_key = EXCLUDED.tempo_venda_key,
@@ -486,6 +486,7 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
         if not df_trends.empty:
             ft = df_trends.copy()
             ft["data"] = pd.to_datetime(ft["mes"], errors="coerce").dt.normalize()
+            ft["data"] = ft["data"].apply(lambda x: x.replace(day=1) if pd.notnull(x) else x)
             ft = ft.merge(map_tempo, on="data", how="left")
             
             # Match robusto considerando "N/A" -> ID -1 (Unknown)
@@ -578,6 +579,8 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             for _, row in df_forum.iterrows():
                 data_dt = pd.to_datetime(str(row.get("data_extracao", "") or ""), errors="coerce")
                 if pd.isna(data_dt): continue
+
+                data_dt = data_dt.replace(day=1)
 
                 match_tempo = map_tempo[map_tempo["data"] == data_dt.normalize()]
                 if match_tempo.empty: continue
@@ -678,13 +681,14 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
                     print("    -> fact_forum_sentiment: nenhum registo válido após filtros.")
 
         # ======================================================================
-        # FCT_HASHTAG_VOLUME
+        # FACT_HASHTAG_VOLUME
         # ======================================================================
-        print("  A processar fct_hashtag_volume...")
+        print("  A processar fact_hashtag_volume...")
         fonte_key_hash = get_fonte_key("Hashtags Sociais")
         if not df_hash.empty and fonte_key_hash:
             fh = df_hash.copy()
             fh["data"] = pd.to_datetime(fh["data"], errors="coerce").dt.normalize()
+            fh["data"] = fh["data"].apply(lambda x: x.replace(day=1) if pd.notnull(x) else x)
             fh = fh.merge(map_tempo,   on="data",    how="left")
             
             fh["marca"]  = _safe_col(fh, "marca_normalizada", "Unknown").fillna("Unknown").replace("N/A", "Unknown")
@@ -716,7 +720,7 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
 
             conn.execute(
                 text(f"""
-                    INSERT INTO {DW_SCHEMA}.fct_hashtag_volume
+                    INSERT INTO {DW_SCHEMA}.fact_hashtag_volume
                         (tempo_key, fonte_key, marca_key, modelo_key, tipo_key, combustivel_key,
                          volume, posts_instagram, posts_twitter, posts_youtube, variacao_semanal)
                     VALUES
@@ -733,9 +737,9 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             )
 
         # ======================================================================
-        # FCT_INVENTARIO_MENSAL (Lógica SQL de Expansão Histórica)
+        # FACT_INVENTARIO_MENSAL (Lógica SQL de Expansão Histórica)
         # ======================================================================
-        print("  A processar fct_inventario_mensal...")
+        print("  A processar fact_inventario_mensal...")
         if not df_inv.empty:
             # 1. Preparar uma tabela de Staging rápida no PostgreSQL
             df_stg = df_inv[["id_viatura", "stand", "preco_aquisicao", "data_entrada_stock", "data_venda"]].copy()
@@ -753,7 +757,7 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             data_limite_sql = f"'{data_limite}'::date" if data_limite else "CURRENT_DATE"
 
             conn.execute(text(f"""
-                INSERT INTO {DW_SCHEMA}.fct_inventario_mensal
+                INSERT INTO {DW_SCHEMA}.fact_inventario_mensal
                     (tempo_key, stand_key, veiculo_key, valor_em_stock, dias_em_parque)
                 SELECT tempo_key, stand_key, veiculo_key, valor_em_stock, dias_em_parque
                 FROM (

@@ -509,7 +509,7 @@ def exportar_json_por_mes(trends: list[dict]) -> None:
         with out_file.open("w", encoding="utf-8") as f:
             json.dump(lista, f, ensure_ascii=False, indent=2)
 
-        print(f"{out_file}  → {len(lista)} registos gerados.")
+        print(f"{out_file}  -> {len(lista)} registos gerados.")
 
 
 # ============================================================

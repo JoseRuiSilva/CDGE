@@ -210,7 +210,7 @@ def correr_incremental(engine, data_limite: date, nlp_habilitado: bool = True, s
     run_bronze(**{f"ficheiros_{k}": v for k, v in ficheiros.items()})
     # Silver aplica CDC-like deduplicação por id_viatura e mantém apenas o último snapshot conhecido.
     run_silver(**{f"ficheiros_{k}": [str(f) for f in v] for k, v in ficheiros.items()}, nlp_habilitado=nlp_habilitado)
-    # O carregamento para Postgres é idempotente: upserts em dim_veiculo, fct_venda e fct_inventario_mensal.
+    # O carregamento para Postgres é idempotente: upserts em dim_veiculo, fact_venda e fact_inventario_mensal.
     run_load_to_postgres(mode="incremental", data_limite=data_limite)
     copy_to_sandbox(DW_URL)
     if not skip_models:
