@@ -509,6 +509,10 @@ def run_load_to_postgres(mode: str = "full_load", data_limite: date = None):
             ft["modelo_key"] = ft["modelo_key"].astype(int)
             ft["localizacao_key"] = ft["localizacao_key"].astype(int)
 
+            # Remover duplicados sobre a chave única de fact_trends para evitar comparar a linha consigo própria
+            # no .pct_change() e impedir que o ON CONFLICT DO UPDATE grave 0.0 na base de dados.
+            ft = ft.drop_duplicates(subset=["tempo_key", "marca_key", "modelo_key", "tipo_key", "combustivel_key", "localizacao_key"])
+
             # Cálculo de crescimento_mom_pct
             ft = ft.sort_values(["modelo_key", "localizacao_key", "data"])
             
